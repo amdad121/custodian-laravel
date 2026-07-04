@@ -1,0 +1,7 @@
+<?php
+
+declare(strict_types=1);
+
+use AmdadulHaq\Custodian\Tests\TestCase;
+
+uses(TestCase::class)->in(__DIR__);

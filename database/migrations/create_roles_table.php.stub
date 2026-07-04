@@ -1,0 +1,50 @@
+<?php
+
+declare(strict_types=1);
+
+use AmdadulHaq\Custodian\Facades\Custodian;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        $tables = config('custodian.tables');
+        $models = config('custodian.models');
+        $pivotTableName = Custodian::getPivotTableName(Arr::only($models, ['role', 'user']));
+
+        Schema::create($tables['roles'], function (Blueprint $table): void {
+            $table->id();
+            $table->string('name')->unique();
+            $table->string('label')->nullable();
+            $table->text('description')->nullable();
+            $table->boolean('is_guarded')->default(false);
+            $table->timestamps();
+        });
+
+        Schema::create($pivotTableName, function (Blueprint $table) use ($tables, $models): void {
+            $table->foreignId(Custodian::getSingularName($tables['roles']).'_id')->constrained($tables['roles'])->cascadeOnDelete();
+            $table->foreignId(Custodian::getSingularName(Custodian::getTableName($models['user'])).'_id')->constrained(Custodian::getTableName($models['user']))->cascadeOnDelete();
+            $table->primary([Custodian::getSingularName($tables['roles']).'_id', Custodian::getSingularName(Custodian::getTableName($models['user'])).'_id']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        $tables = config('custodian.tables');
+        $models = config('custodian.models');
+        $pivotTableName = Custodian::getPivotTableName(Arr::only($models, ['role', 'user']));
+
+        Schema::dropIfExists($pivotTableName);
+        Schema::dropIfExists($tables['roles']);
+    }
+};
