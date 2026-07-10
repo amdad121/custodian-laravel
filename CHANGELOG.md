@@ -2,6 +2,10 @@
 
 All notable changes to `custodian-laravel` will be documented in this file.
 
+## v2.0.0 - 2026-07-11
+
+- **Breaking:** renamed `is_guarded` to `is_protected` (and `GuardedRoleException` to `ProtectedRoleException`, `guarded()`/`unguarded()` scopes to `protected()`/`unprotected()`) to avoid colliding with Eloquent's own `$guarded` mass-assignment property. See [UPGRADE.md](UPGRADE.md).
+
 ## v1.0.0 - 2026-07-04
 
 Initial release.

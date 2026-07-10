@@ -29,11 +29,11 @@ All four gates (pest, phpstan, pint, rector dry-run) must pass before release; C
 
 **Naming: contract vs trait** — `Contracts\Roleable` (interface) and `Concerns\Roleable` (trait) intentionally share a name; consumers alias the contract (`Roleable as RoleableContract`). The contract is load-bearing: middleware, the gate hook, and `custodian:create-role` all use `instanceof Roleable` as the type gate. Do not rename either.
 
-**HTTP semantics** — middleware return 401 for unauthenticated requests, 403 (via `PermissionDeniedException extends HttpException`) for authenticated users lacking access. `GuardedRoleException` blocks deletion of roles with `is_guarded = true` (enforced in `Role::booted()`).
+**HTTP semantics** — middleware return 401 for unauthenticated requests, 403 (via `PermissionDeniedException extends HttpException`) for authenticated users lacking access. `ProtectedRoleException` blocks deletion of roles with `is_protected = true` (enforced in `Role::booted()`).
 
 **Wildcards** — a permission named `posts.*` matches any `posts.…` ability (`matchesWildcardPermission`), toggled by `config('custodian.wildcard.enabled')`. `is_wildcard` is auto-set in `Permission::booted()` when the name ends with `*`.
 
-**`custodian:upgrade`** — currently a no-op scaffold (`src/Commands/UpgradeCommand.php`); this is the first release, so there is nothing to migrate from yet. When a future release removes or renames public API, add a regex rewrite map as a class constant here, apply it in `handle()`, and add a corresponding test in `tests/Unit/UpgradeCommandTest.php`.
+**`custodian:upgrade`** — scans `app/` and `database/` for identifiers listed in the `REWRITES` regex map (`src/Commands/UpgradeCommand.php`) and rewrites them in place. When a future release removes or renames public API, add the old→new pattern to that map and add a corresponding test in `tests/Unit/UpgradeCommandTest.php`.
 
 **`custodian:doctor`** — read-only diagnostic command (`src/Commands/DoctorCommand.php`) checking configured model classes, table existence, and wildcard config. When adding new config keys, add a corresponding check here.
 

@@ -68,7 +68,7 @@ Route::middleware('role:admin')->get('/admin', [AdminController::class, 'index']
 - **Middleware Protection** - `role`, `permission`, and `role_or_permission` middleware
 - **Blade Directives** - `@role`, `@hasrole`, `@hasanyrole`, `@hasallroles`
 - **Type-Safe Enums** - IDE-friendly `PermissionType` enum
-- **Guarded Roles** - Guarded roles cannot be deleted; attempts throw `GuardedRoleException`
+- **Protected Roles** - Protected roles cannot be deleted; attempts throw `ProtectedRoleException`
 - **Permission Groups** - Organize permissions by resource
 - **Interactive Commands** - Laravel Prompts for creating roles/permissions
 - **Clean Architecture** - Separated concerns with traits and contracts
@@ -234,7 +234,7 @@ $role = Role::create([
     'name' => 'administrator',        // required, unique — used by all checks
     'label' => 'Administrator',       // optional display name
     'description' => 'Full system access',
-    'is_guarded' => true,             // protect from deletion
+    'is_protected' => true,           // protect from deletion
 ]);
 
 $role->update(['label' => 'Admin']);
@@ -243,15 +243,15 @@ $role->update(['label' => 'Admin']);
 $role->getName();              // 'administrator'
 $role->getLabel();             // 'Administrator'
 $role->getDescription();       // 'Full system access'
-$role->isProtectedRole();      // true — deleting now throws GuardedRoleException
+$role->isProtectedRole();      // true — deleting now throws ProtectedRoleException
 
 // Other role methods
 $role->getPermissionNames();   // All permission names assigned to the role
 $role->users;                  // Users with this role
 
 // Query scopes
-Role::guarded()->get();        // Only guarded roles
-Role::unguarded()->get();      // Only unguarded roles
+Role::protected()->get();      // Only protected roles
+Role::unprotected()->get();    // Only unprotected roles
 ```
 
 Roles can also be created via the CLI — see [Artisan Commands](#artisan-commands).
@@ -602,8 +602,8 @@ User::query()->withRoles('administrator')->get();
 User::query()->withPermissions('users.create')->get();
 
 // Role scopes
-Role::query()->guarded()->get();
-Role::query()->unguarded()->get();
+Role::query()->protected()->get();
+Role::query()->unprotected()->get();
 
 // Permission scopes
 Permission::query()->wildcard()->get();
@@ -642,7 +642,7 @@ Permission::query()->byGroup('users')->get();
 - `name` (string, unique)
 - `label` (string, nullable)
 - `description` (text, nullable)
-- `is_guarded` (boolean)
+- `is_protected` (boolean)
 
 **Methods:**
 
@@ -654,8 +654,8 @@ Permission::query()->byGroup('users')->get();
 
 **Scopes:**
 
-- `guarded()` - Only guarded roles
-- `unguarded()` - Only unguarded roles
+- `protected()` - Only protected roles
+- `unprotected()` - Only unprotected roles
 
 </details>
 
@@ -708,7 +708,7 @@ Both models also expose `getTable()`, which resolves the table name from `config
 
 ```php
 use AmdadulHaq\Custodian\Exceptions\PermissionDeniedException;
-use AmdadulHaq\Custodian\Exceptions\GuardedRoleException;
+use AmdadulHaq\Custodian\Exceptions\ProtectedRoleException;
 
 // Thrown by the middleware when a user lacks the required permission/role.
 // Extends Symfony's HttpException, so it renders as an HTTP 403 response.
@@ -716,8 +716,8 @@ throw PermissionDeniedException::create('users.delete');
 throw PermissionDeniedException::roleNotAssigned('administrator');
 throw PermissionDeniedException::roleOrPermissionNotAssigned('admin, users.delete');
 
-// Thrown when deleting a role with is_guarded = true
-throw GuardedRoleException::cannotDelete('super-admin');
+// Thrown when deleting a role with is_protected = true
+throw ProtectedRoleException::cannotDelete('super-admin');
 ```
 
 Role and permission mutators (`assignRole`, `givePermissionTo`, `syncRoles`, `revokeRole`, ...) throw `Illuminate\Database\Eloquent\ModelNotFoundException` when a name does not resolve to an existing model — typos fail loudly instead of silently doing nothing.
@@ -763,7 +763,7 @@ Schema::create('roles', function (Blueprint $table) {
     $table->string('name')->unique();
     $table->string('label')->nullable();
     $table->text('description')->nullable();
-    $table->boolean('is_guarded')->default(false);
+    $table->boolean('is_protected')->default(false);
     $table->timestamps();
 });
 ```

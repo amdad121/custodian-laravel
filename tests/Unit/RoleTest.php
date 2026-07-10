@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AmdadulHaq\Custodian\Exceptions\GuardedRoleException;
+use AmdadulHaq\Custodian\Exceptions\ProtectedRoleException;
 use AmdadulHaq\Custodian\Models\Permission;
 use AmdadulHaq\Custodian\Models\Role;
 use AmdadulHaq\Custodian\Tests\Models\User;
@@ -149,18 +149,18 @@ it('can check if user belongs to role via users relation', function (): void {
     expect($hasUser)->toBeTrue();
 });
 
-it('can query guarded and unguarded roles via scopes', function (): void {
+it('can query protected and unprotected roles via scopes', function (): void {
     Role::query()->create([
         'name' => 'system',
-        'is_guarded' => true,
+        'is_protected' => true,
     ]);
 
-    $guarded = Role::query()->guarded()->pluck('name')->all();
-    $unguarded = Role::query()->unguarded()->pluck('name')->all();
+    $protected = Role::query()->protected()->pluck('name')->all();
+    $unprotected = Role::query()->unprotected()->pluck('name')->all();
 
-    expect($guarded)->toContain('system')
-        ->and($unguarded)->toContain('admin')
-        ->and($unguarded)->not->toContain('system');
+    expect($protected)->toContain('system')
+        ->and($unprotected)->toContain('admin')
+        ->and($unprotected)->not->toContain('system');
 });
 
 it('can query users with roles via scope', function (): void {
@@ -185,11 +185,11 @@ it('can query users with roles via scope', function (): void {
         ->toEqual(['admin@example.com']);
 });
 
-it('prevents deleting a guarded role', function (): void {
-    $role = Role::query()->create(['name' => 'super-admin', 'is_guarded' => true]);
+it('prevents deleting a protected role', function (): void {
+    $role = Role::query()->create(['name' => 'super-admin', 'is_protected' => true]);
 
     expect(fn () => $role->delete())
-        ->toThrow(GuardedRoleException::class);
+        ->toThrow(ProtectedRoleException::class);
 
     expect(Role::query()->whereKey($role->getKey())->exists())->toBeTrue();
 });

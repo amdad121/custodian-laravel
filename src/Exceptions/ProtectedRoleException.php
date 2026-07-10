@@ -6,10 +6,10 @@ namespace AmdadulHaq\Custodian\Exceptions;
 
 use RuntimeException;
 
-class GuardedRoleException extends RuntimeException
+class ProtectedRoleException extends RuntimeException
 {
     public static function cannotDelete(string $role): self
     {
-        return new self(sprintf('Cannot delete guarded role: %s', $role));
+        return new self(sprintf('Cannot delete protected role: %s', $role));
     }
 }

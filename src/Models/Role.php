@@ -8,7 +8,7 @@ use AmdadulHaq\Custodian\Concerns\HasCustodianHelpers;
 use AmdadulHaq\Custodian\Contracts\Permissionable as PermissionableContract;
 use AmdadulHaq\Custodian\Events\PermissionGranted;
 use AmdadulHaq\Custodian\Events\PermissionRevoked;
-use AmdadulHaq\Custodian\Exceptions\GuardedRoleException;
+use AmdadulHaq\Custodian\Exceptions\ProtectedRoleException;
 use AmdadulHaq\Custodian\Facades\Custodian;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +19,7 @@ use Illuminate\Support\Arr;
  * @property string $name
  * @property string|null $label
  * @property string|null $description
- * @property bool $is_guarded
+ * @property bool $is_protected
  */
 class Role extends Model implements PermissionableContract
 {
@@ -28,13 +28,13 @@ class Role extends Model implements PermissionableContract
     protected $guarded = [];
 
     /**
-     * Prevent guarded roles from being deleted.
+     * Prevent protected roles from being deleted.
      */
     protected static function booted(): void
     {
         static::deleting(function (self $role): void {
             if ($role->isProtectedRole()) {
-                throw GuardedRoleException::cannotDelete($role->getName());
+                throw ProtectedRoleException::cannotDelete($role->getName());
             }
         });
     }
@@ -47,7 +47,7 @@ class Role extends Model implements PermissionableContract
     protected function casts(): array
     {
         return [
-            'is_guarded' => 'boolean',
+            'is_protected' => 'boolean',
         ];
     }
 
@@ -124,7 +124,7 @@ class Role extends Model implements PermissionableContract
      */
     public function isProtectedRole(): bool
     {
-        return $this->is_guarded ?? false;
+        return $this->is_protected ?? false;
     }
 
     /**
@@ -212,24 +212,24 @@ class Role extends Model implements PermissionableContract
     }
 
     /**
-     * Scope a query to only include guarded roles.
+     * Scope a query to only include protected roles.
      *
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    protected function scopeGuarded(Builder $query): Builder
+    protected function scopeProtected(Builder $query): Builder
     {
-        return $query->where('is_guarded', true);
+        return $query->where('is_protected', true);
     }
 
     /**
-     * Scope a query to only include unguarded roles.
+     * Scope a query to only include unprotected roles.
      *
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    protected function scopeUnguarded(Builder $query): Builder
+    protected function scopeUnprotected(Builder $query): Builder
     {
-        return $query->where('is_guarded', false);
+        return $query->where('is_protected', false);
     }
 }

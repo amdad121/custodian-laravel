@@ -40,7 +40,7 @@ class TestCase extends Orchestra
             $table->string('name')->unique();
             $table->string('label')->nullable();
             $table->text('description')->nullable();
-            $table->boolean('is_guarded')->default(false);
+            $table->boolean('is_protected')->default(false);
             $table->timestamps();
         });
 
