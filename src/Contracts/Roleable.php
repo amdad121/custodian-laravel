@@ -47,12 +47,25 @@ interface Roleable
      * @param  array<int, Model|string|int>  $roles
      * @return array<string, mixed>
      */
-    public function syncRoles(array $roles): array;
+    public function syncRoles(array $roles, bool $detach = true): array;
+
+    /**
+     * Sync roles to the entity without detaching.
+     *
+     * @param  array<int, Model|string|int>  $roles
+     * @return array<string, mixed>
+     */
+    public function syncRolesWithoutDetaching(array $roles): array;
 
     /**
      * Revoke a role from the entity.
      */
     public function revokeRole(Model|string $role): int;
+
+    /**
+     * Revoke all roles from the entity.
+     */
+    public function revokeRoles(): int;
 
     /**
      * Check if the entity has a specific role.

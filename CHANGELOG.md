@@ -2,6 +2,14 @@
 
 All notable changes to `custodian-laravel` will be documented in this file.
 
+## v2.1.0 - 2026-07-13
+
+- `custodian:upgrade` now also scans `resources/views/` and `tests/` directories, in addition to `app/` and `database/`.
+- `custodian:doctor` now also checks that the derived `role<->permission` and `role<->user` pivot tables exist, that `custodian.middleware.*` aliases are configured, and that the roles table has the `is_protected` column (catches an incomplete v1→v2 upgrade).
+- Fixed: `syncRoles()` and `Role::syncPermissions()` now dispatch `RoleRevoked`/`PermissionRevoked` when the sync actually detaches existing roles/permissions (previously only `RoleAssigned`/`PermissionGranted` fired, so audit listeners never saw the detach).
+- Fixed: `Permission::is_wildcard` is now recalculated whenever `name` changes on update, not just on creation.
+- `Roleable` and `Permissionable` contracts now declare `syncRolesWithoutDetaching()`, `revokeRoles()`, and `revokeAllPermissions()` to match the trait/model's actual public API.
+
 ## v2.0.0 - 2026-07-11
 
 - **Breaking:** renamed `is_guarded` to `is_protected` (and `GuardedRoleException` to `ProtectedRoleException`, `guarded()`/`unguarded()` scopes to `protected()`/`unprotected()`) to avoid colliding with Eloquent's own `$guarded` mass-assignment property. See [UPGRADE.md](UPGRADE.md).

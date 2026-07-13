@@ -6,8 +6,10 @@ namespace AmdadulHaq\Custodian\Commands;
 
 use AmdadulHaq\Custodian\Contracts\Permissionable;
 use AmdadulHaq\Custodian\Contracts\Roleable;
+use AmdadulHaq\Custodian\Facades\Custodian;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -36,7 +38,9 @@ class DoctorCommand extends Command
     {
         $this->checkModelClasses();
         $this->checkTables();
+        $this->checkPivotTables();
         $this->checkUserModel();
+        $this->checkMiddlewareConfig();
         $this->checkWildcardConfig();
 
         $this->newLine();
@@ -137,6 +141,12 @@ class DoctorCommand extends Command
 
                     continue;
                 }
+
+                if ($key === 'roles' && ! Schema::hasColumn($table, 'is_protected')) {
+                    $this->reportFail(sprintf('Table [%s] is missing the [is_protected] column. If you upgraded from v1.x, run: php artisan custodian:upgrade and add a migration renaming is_guarded to is_protected. See UPGRADE.md.', $table));
+
+                    continue;
+                }
             } catch (Throwable $e) {
                 $this->reportFail(sprintf('Could not check table [%s]: %s', $table, $e->getMessage()));
 
@@ -144,6 +154,77 @@ class DoctorCommand extends Command
             }
 
             $this->reportPass(sprintf('Table [%s] => %s', $key, $table));
+        }
+    }
+
+    /**
+     * Verify the derived role<->permission and role<->user pivot tables exist.
+     */
+    protected function checkPivotTables(): void
+    {
+        $models = config('custodian.models', []);
+
+        if (! is_array($models)) {
+            return;
+        }
+
+        foreach ([
+            'role<->permission' => ['permission', 'role'],
+            'role<->user' => ['role', 'user'],
+        ] as $label => $keys) {
+            $pair = Arr::only($models, $keys);
+
+            if (count($pair) !== count($keys)) {
+                continue;
+            }
+
+            if (in_array('', $pair, true)) {
+                continue;
+            }
+
+            if (array_filter($pair, fn ($v): bool => ! is_string($v) || ! class_exists($v)) !== []) {
+                continue;
+            }
+
+            try {
+                $table = Custodian::getPivotTableName($pair);
+
+                if (! Schema::hasTable($table)) {
+                    $this->reportFail(sprintf('Pivot table [%s] for %s does not exist. Run: php artisan vendor:publish --tag="custodian-migrations" && php artisan migrate', $table, $label));
+
+                    continue;
+                }
+
+                $this->reportPass(sprintf('Pivot table [%s] => %s', $label, $table));
+            } catch (Throwable $e) {
+                $this->reportFail(sprintf('Could not determine pivot table for %s: %s', $label, $e->getMessage()));
+            }
+        }
+    }
+
+    /**
+     * Verify the middleware aliases are configured with non-empty string values.
+     */
+    protected function checkMiddlewareConfig(): void
+    {
+        $middleware = config('custodian.middleware', []);
+
+        if (! is_array($middleware)) {
+            $this->reportFail("config('custodian.middleware') is not an array.");
+
+            return;
+        }
+
+        foreach (['role', 'permission', 'role_or_permission'] as $key) {
+            $alias = $middleware[$key] ?? null;
+
+            if (! is_string($alias) || $alias === '') {
+                $this->reportFail(sprintf("config('custodian.middleware.%s') is not set.", $key));
+
+                continue;
+            }
+
+            $this->reportPass(sprintf('Middleware [%s] => %s', $key, $alias));
         }
     }
 

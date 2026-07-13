@@ -168,6 +168,10 @@ class Role extends Model implements PermissionableContract
 
         event(new PermissionGranted($this, $permissionIds));
 
+        if ($synced['detached'] !== []) {
+            event(new PermissionRevoked($this));
+        }
+
         return $synced;
     }
 

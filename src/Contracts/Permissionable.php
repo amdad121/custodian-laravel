@@ -47,6 +47,11 @@ interface Permissionable
     public function revokePermissionTo(Model|string $permission): int;
 
     /**
+     * Revoke all permissions from the entity.
+     */
+    public function revokeAllPermissions(): int;
+
+    /**
      * Check if the entity has a specific permission by model or name.
      */
     public function hasPermission(Model|string $permission): bool;

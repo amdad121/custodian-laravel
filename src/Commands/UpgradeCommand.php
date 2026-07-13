@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\File;
 class UpgradeCommand extends Command
 {
     /**
-     * Regex rewrite map applied to app/database code when upgrading past v1.0.0.
+     * Regex rewrite map applied to app/database/views/tests code when upgrading past v1.0.0.
      *
      * `is_guarded` / `GuardedRoleException` / `guarded()` / `unguarded()` were renamed
      * to `is_protected` / `ProtectedRoleException` / `protected()` / `unprotected()`
@@ -43,10 +43,13 @@ class UpgradeCommand extends Command
      */
     public function handle(): int
     {
-        $paths = array_filter([app_path(), database_path()], fn (string $path): bool => File::isDirectory($path));
+        $paths = array_filter(
+            [app_path(), database_path(), resource_path('views'), base_path('tests')],
+            fn (string $path): bool => File::isDirectory($path)
+        );
 
         if ($paths === []) {
-            $this->info('No app or database directories found to scan.');
+            $this->info('No app, database, views, or tests directories found to scan.');
 
             return self::SUCCESS;
         }

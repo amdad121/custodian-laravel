@@ -38,6 +38,18 @@ it('can check if permission is wildcard', function (): void {
         ->toBeFalse();
 });
 
+it('recalculates is_wildcard when the name is renamed', function (): void {
+    expect($this->permission->is_wildcard)->toBeFalse();
+
+    $this->permission->update(['name' => 'users.*']);
+
+    expect($this->permission->fresh()->is_wildcard)->toBeTrue();
+
+    $this->permission->update(['name' => 'users.create']);
+
+    expect($this->permission->fresh()->is_wildcard)->toBeFalse();
+});
+
 it('can get permission group', function (): void {
     expect($this->permission->getGroup())
         ->toBe('users');

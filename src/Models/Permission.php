@@ -117,8 +117,10 @@ class Permission extends Model
      */
     protected static function booted(): void
     {
-        static::creating(function (self $permission): void {
-            $permission->is_wildcard = str_ends_with($permission->name, '*');
+        static::saving(function (self $permission): void {
+            if ($permission->isDirty('name')) {
+                $permission->is_wildcard = str_ends_with($permission->name, '*');
+            }
         });
     }
 

@@ -86,6 +86,10 @@ trait Roleable
 
         event(new RoleAssigned($this, $roleIds));
 
+        if ($detach && $synced['detached'] !== []) {
+            event(new RoleRevoked($this));
+        }
+
         return $synced;
     }
 

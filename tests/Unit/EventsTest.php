@@ -72,3 +72,41 @@ it('dispatches PermissionRevoked when a permission is revoked from a role', func
 
     Event::assertDispatched(PermissionRevoked::class, fn (PermissionRevoked $event): bool => $event->role->is($this->role) && $event->permission?->is($this->permission));
 });
+
+it('dispatches RoleRevoked when syncing roles detaches an existing role', function (): void {
+    $role2 = Role::query()->create(['name' => 'author']);
+    $this->user->assignRole($this->role, $role2);
+    Event::fake();
+
+    $this->user->syncRoles([$role2->id]);
+
+    Event::assertDispatched(RoleRevoked::class);
+});
+
+it('does not dispatch RoleRevoked when syncing roles detaches nothing', function (): void {
+    $this->user->assignRole($this->role);
+    Event::fake();
+
+    $this->user->syncRoles([$this->role->id]);
+
+    Event::assertNotDispatched(RoleRevoked::class);
+});
+
+it('dispatches PermissionRevoked when syncing permissions detaches an existing permission', function (): void {
+    $permission2 = Permission::query()->create(['name' => 'posts.delete']);
+    $this->role->givePermissionTo($this->permission, $permission2);
+    Event::fake();
+
+    $this->role->syncPermissions([$permission2->id]);
+
+    Event::assertDispatched(PermissionRevoked::class);
+});
+
+it('does not dispatch PermissionRevoked when syncing permissions detaches nothing', function (): void {
+    $this->role->givePermissionTo($this->permission);
+    Event::fake();
+
+    $this->role->syncPermissions([$this->permission->id]);
+
+    Event::assertNotDispatched(PermissionRevoked::class);
+});
