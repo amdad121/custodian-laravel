@@ -17,7 +17,7 @@ composer lint                # Pint (fix); composer lint:check to verify only
 composer refactor            # Rector (apply); composer refactor:check for dry-run
 ```
 
-All four gates (pest, phpstan, pint, rector dry-run) must pass before release; CI runs the matrix Laravel 11/12/13 × PHP 8.2–8.5.
+All four gates (pest, phpstan, pint, rector dry-run) must pass before release; CI runs the matrix Laravel 12/13 × PHP 8.2–8.5.
 
 ## Architecture
 

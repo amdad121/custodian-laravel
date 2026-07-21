@@ -975,14 +975,6 @@ See [CHANGELOG](CHANGELOG.md) for recent changes.
 
 Please review [our security policy](../../security/policy) for reporting vulnerabilities.
 
-## Star History
-
-If Custodian helps you, a star helps the project grow.
-
-[![GitHub Stars](https://img.shields.io/github/stars/amdad121/custodian-laravel?style=social)](https://github.com/amdad121/custodian-laravel/stargazers)
-
-[![Star History Chart](https://api.star-history.com/svg?repos=amdad121/custodian-laravel&type=Date)](https://star-history.com/#amdad121/custodian-laravel&Date)
-
 ## Credits
 
 ![Contributors](https://contrib.rocks/image?repo=amdad121/custodian-laravel)
