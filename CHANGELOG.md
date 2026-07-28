@@ -2,7 +2,7 @@
 
 All notable changes to `custodian-laravel` will be documented in this file.
 
-## v2.1.1 - 2026-07-28
+## v2.1.2 - 2026-07-28
 
 - Fixed: `hasRole()`, `hasAllRoles()`, and `hasAnyRole()` now accept a `Role` model instance (previously only `string|array|Collection`, so passing a model threw a `TypeError` — `hasPermission()` already allowed this).
 
