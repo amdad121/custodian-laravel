@@ -70,23 +70,23 @@ interface Roleable
     /**
      * Check if the entity has a specific role.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  $role
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  $role
      */
-    public function hasRole(string|array|Collection $role): bool;
+    public function hasRole(Model|string|array|Collection $role): bool;
 
     /**
      * Check if the entity has all specified roles.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
      */
-    public function hasAllRoles(string|array|Collection ...$roles): bool;
+    public function hasAllRoles(Model|string|array|Collection ...$roles): bool;
 
     /**
      * Check if the entity has any of the specified roles.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
      */
-    public function hasAnyRole(string|array|Collection ...$roles): bool;
+    public function hasAnyRole(Model|string|array|Collection ...$roles): bool;
 
     /**
      * Get all permissions inherited through roles.

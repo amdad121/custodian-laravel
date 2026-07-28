@@ -97,6 +97,17 @@ it('can check if user has role', function (): void {
         ->toBeFalse();
 });
 
+it('can check if user has role by model instance', function (): void {
+    $this->user->assignRole($this->role);
+
+    $editor = Role::query()->create(['name' => 'editor']);
+
+    expect($this->user->hasRole($this->role))
+        ->toBeTrue()
+        ->and($this->user->hasRole($editor))
+        ->toBeFalse();
+});
+
 it('can check if user has all roles', function (): void {
     $role2 = Role::query()->create(['name' => 'editor']);
 

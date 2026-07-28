@@ -160,14 +160,10 @@ trait Roleable
     /**
      * Check if entity has the given role.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  $role
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  $role
      */
-    public function hasRole(string|array|Collection $role): bool
+    public function hasRole(Model|string|array|Collection $role): bool
     {
-        if (is_string($role)) {
-            return $this->roles->contains('name', $role);
-        }
-
         return $this->normalizeRoleNames($role)
             ->intersect($this->getAssignedRoleNames())
             ->isNotEmpty();
@@ -176,9 +172,9 @@ trait Roleable
     /**
      * Check if entity has all of the given roles.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
      */
-    public function hasAllRoles(string|array|Collection ...$roles): bool
+    public function hasAllRoles(Model|string|array|Collection ...$roles): bool
     {
         if (count($roles) === 1 && is_array($roles[0]) && $roles[0] !== []) {
             $roles = $roles[0];
@@ -196,9 +192,9 @@ trait Roleable
     /**
      * Check if entity has any of the given roles.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  ...$roles
      */
-    public function hasAnyRole(string|array|Collection ...$roles): bool
+    public function hasAnyRole(Model|string|array|Collection ...$roles): bool
     {
         return $this->normalizeRoleNames($roles)
             ->intersect($this->getAssignedRoleNames())
@@ -218,20 +214,23 @@ trait Roleable
     /**
      * Normalize a mixed role input into a flat Collection of name strings.
      *
-     * @param  string|array<array-key, mixed>|Collection<array-key, mixed>  $roles
+     * @param  Model|string|array<array-key, mixed>|Collection<array-key, mixed>  $roles
      * @return Collection<int, string>
      */
-    protected function normalizeRoleNames(string|array|Collection $roles): Collection
+    protected function normalizeRoleNames(Model|string|array|Collection $roles): Collection
     {
         if (is_string($roles)) {
             return collect([$roles]);
         }
 
-        if ($roles instanceof Collection) {
-            $roles = $roles->pluck('name')->all();
+        if ($roles instanceof Model) {
+            return collect([$roles->getAttribute('name')]);
         }
 
-        return collect($roles)->flatten()->filter();
+        return collect($roles)
+            ->flatten()
+            ->map(fn ($role) => $role instanceof Model ? $role->getAttribute('name') : $role)
+            ->filter();
     }
 
     /**
