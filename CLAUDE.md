@@ -44,8 +44,3 @@ All four gates (pest, phpstan, pint, rector dry-run) must pass before release; C
 - PHPStan is at level 8 with full generics (`BelongsToMany<Model, $this>`, `Builder<self>`, `array<int, string>` etc.). `tests/Models` is included in the analysis paths alongside `src/` specifically so `Concerns\Roleable` gets analysed through the test `User` model (nothing in `src/` itself uses the trait).
 - Migrations ship as `.php.stub` files in `database/migrations/` and are published with timestamps by the provider.
 - On breaking changes, update all three docs together: README.md, UPGRADE.md (new numbered section with per-item **Action:** lines), CHANGELOG.md.
-
-## Git
-
-- Commit as the repo owner only: `Amdadul Haq <amdadulhaq781@gmail.com>`. No `Co-Authored-By`, `Claude-Session`, or other Claude attribution lines in commits or PRs.
-- Branch names describe the change (e.g. `fix/audit-findings`, `feat/team-roles`); never use a `claude/` prefix or generated names.
