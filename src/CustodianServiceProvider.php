@@ -56,10 +56,18 @@ class CustodianServiceProvider extends ServiceProvider
      * Register a Gate::before hook that resolves abilities as
      * permissions or roles. Returns null when the ability is not
      * granted so explicitly defined gates and policies still run.
+     *
+     * Checks that carry arguments (e.g. `can('update', $post)`) are
+     * left to policies: a role or permission sharing a policy method's
+     * name must not authorize that action on every model.
      */
     protected function registerGateHook(): void
     {
-        Gate::before(function (mixed $user, string $ability): ?bool {
+        Gate::before(function (mixed $user, string $ability, array $arguments = []): ?bool {
+            if ($arguments !== []) {
+                return null;
+            }
+
             if (! $user instanceof Roleable) {
                 return null;
             }
@@ -125,19 +133,19 @@ class CustodianServiceProvider extends ServiceProvider
      */
     protected function registerBladeDirectives(): void
     {
-        Blade::directive('role', fn (string $expression): string => sprintf('<?php if(auth()->check() && auth()->user()->hasRole(%s)): ?>', $expression));
+        Blade::directive('role', fn (string $expression): string => sprintf('<?php if(auth()->user() instanceof \\AmdadulHaq\\Custodian\\Contracts\\Roleable && auth()->user()->hasRole(%s)): ?>', $expression));
 
         Blade::directive('endrole', fn (): string => '<?php endif; ?>');
 
-        Blade::directive('hasrole', fn (string $expression): string => sprintf('<?php if(auth()->check() && auth()->user()->hasRole(%s)): ?>', $expression));
+        Blade::directive('hasrole', fn (string $expression): string => sprintf('<?php if(auth()->user() instanceof \\AmdadulHaq\\Custodian\\Contracts\\Roleable && auth()->user()->hasRole(%s)): ?>', $expression));
 
         Blade::directive('endhasrole', fn (): string => '<?php endif; ?>');
 
-        Blade::directive('hasanyrole', fn (string $expression): string => sprintf('<?php if(auth()->check() && auth()->user()->hasAnyRole(%s)): ?>', $expression));
+        Blade::directive('hasanyrole', fn (string $expression): string => sprintf('<?php if(auth()->user() instanceof \\AmdadulHaq\\Custodian\\Contracts\\Roleable && auth()->user()->hasAnyRole(%s)): ?>', $expression));
 
         Blade::directive('endhasanyrole', fn (): string => '<?php endif; ?>');
 
-        Blade::directive('hasallroles', fn (string $expression): string => sprintf('<?php if(auth()->check() && auth()->user()->hasAllRoles(%s)): ?>', $expression));
+        Blade::directive('hasallroles', fn (string $expression): string => sprintf('<?php if(auth()->user() instanceof \\AmdadulHaq\\Custodian\\Contracts\\Roleable && auth()->user()->hasAllRoles(%s)): ?>', $expression));
 
         Blade::directive('endhasallroles', fn (): string => '<?php endif; ?>');
     }

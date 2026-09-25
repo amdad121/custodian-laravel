@@ -12,5 +12,7 @@ class PermissionRevoked
     public function __construct(
         public readonly Model $role,
         public readonly ?Model $permission = null,
+        /** @var array<int, int> IDs actually detached; for a revoke-all, every ID that was attached. */
+        public readonly array $permissionIds = [],
     ) {}
 }

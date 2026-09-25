@@ -259,3 +259,49 @@ it('can get role labels keyed by name with fallback to name', function (): void 
         'viewer' => 'viewer',
     ]);
 });
+
+it('requires every role when hasAllRoles is given a collection', function (): void {
+    Role::query()->create(['name' => 'editor']);
+    $this->user->assignRole('admin');
+
+    expect($this->user->hasAllRoles(collect(['admin', 'editor'])))->toBeFalse()
+        ->and($this->user->hasAllRoles(collect(['admin'])))->toBeTrue();
+});
+
+it('returns false from hasAllRoles when given no roles', function (): void {
+    $this->user->assignRole('admin');
+
+    expect($this->user->hasAllRoles())->toBeFalse()
+        ->and($this->user->hasAllRoles([]))->toBeFalse();
+});
+
+it('does not drop zero segments from wildcard permissions', function (): void {
+    $this->role->givePermissionTo(Permission::query()->create(['name' => 'api.0.*']));
+    $this->user->assignRole($this->role);
+
+    expect($this->user->hasPermission('api.0.read'))->toBeTrue()
+        ->and($this->user->hasPermission('api.1.read'))->toBeFalse();
+});
+
+it('does not let a dotted wildcard match its bare prefix', function (): void {
+    $this->role->givePermissionTo(Permission::query()->create(['name' => 'posts.*']));
+    $this->user->assignRole($this->role);
+
+    expect($this->user->hasPermission('posts.edit'))->toBeTrue()
+        ->and($this->user->hasPermission('posts'))->toBeFalse()
+        ->and($this->user->hasPermission('postsx.edit'))->toBeFalse();
+});
+
+it('resolves roles with numeric names by name when no such ID exists', function (): void {
+    $numeric = Role::query()->create(['name' => '2024']);
+
+    $this->user->assignRole('2024');
+
+    expect($this->user->hasRole('2024'))->toBeTrue()
+        ->and($this->user->roles->pluck('id')->all())->toBe([$numeric->id]);
+});
+
+it('does not treat scientific notation as a role ID', function (): void {
+    expect(fn () => $this->user->assignRole('1e0'))
+        ->toThrow(Illuminate\Database\Eloquent\ModelNotFoundException::class);
+});

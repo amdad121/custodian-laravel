@@ -93,3 +93,11 @@ it('can query permissions by group via scope', function (): void {
     expect(Permission::query()->byGroup('users')->pluck('name')->sort()->values()->all())
         ->toEqual(['users.create', 'users.delete']);
 });
+
+it('treats underscores in byGroup as literal characters', function (): void {
+    Permission::query()->create(['name' => 'user_admin.view']);
+    Permission::query()->create(['name' => 'userXadmin.view']);
+
+    expect(Permission::query()->byGroup('user_admin')->pluck('name')->all())
+        ->toBe(['user_admin.view']);
+});

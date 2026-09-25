@@ -143,6 +143,13 @@ class Permission extends Model
      */
     protected function scopeByGroup(Builder $query, string $group): Builder
     {
-        return $query->where('name', 'like', $group.'.%');
+        // Compare a literal prefix rather than LIKE, so `_` and `%` in the
+        // group name are not treated as wildcards.
+        $prefix = $group.'.';
+
+        return $query->whereRaw(
+            'SUBSTR('.$query->getQuery()->getGrammar()->wrap('name').', 1, ?) = ?',
+            [mb_strlen($prefix), $prefix]
+        );
     }
 }

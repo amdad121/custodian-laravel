@@ -17,7 +17,11 @@ trait ParsesMiddlewareParameters
         $parsed = [];
         foreach ($params as $param) {
             foreach (explode(',', $param) as $item) {
-                $parsed[] = trim($item);
+                $item = trim($item);
+
+                if ($item !== '') {
+                    $parsed[] = $item;
+                }
             }
         }
 

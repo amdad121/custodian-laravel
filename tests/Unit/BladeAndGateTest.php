@@ -77,3 +77,30 @@ it('authorizes a permission created after boot without re-registration', functio
 
     expect(Gate::forUser($this->user->fresh())->allows('reports.view'))->toBeTrue();
 });
+
+it('leaves ability checks with arguments to policies', function (): void {
+    Role::query()->create(['name' => 'update']);
+    $this->user->assignRole('update');
+    $this->role->givePermissionTo(Permission::query()->create(['name' => 'delete']));
+
+    $user = $this->user->fresh();
+
+    expect(Gate::forUser($user)->allows('update', new stdClass))->toBeFalse()
+        ->and(Gate::forUser($user)->allows('delete', new stdClass))->toBeFalse()
+        ->and(Gate::forUser($user)->allows('update'))->toBeTrue();
+});
+
+it('does not grant a role or permission ability to a model a policy denies', function (): void {
+    Gate::define('users.create', fn ($user, $target): bool => false);
+
+    expect(Gate::forUser($this->user)->allows('users.create', new stdClass))->toBeFalse()
+        ->and(Gate::forUser($this->user)->allows('users.create'))->toBeTrue();
+});
+
+it('renders role directives as false for a user that is not Roleable', function (): void {
+    $guest = new class extends Illuminate\Foundation\Auth\User {};
+    $this->actingAs($guest);
+
+    expect(Blade::render("@role('admin') yes @endrole"))->not->toContain('yes')
+        ->and(Blade::render("@hasallroles('admin') yes @endhasallroles"))->not->toContain('yes');
+});

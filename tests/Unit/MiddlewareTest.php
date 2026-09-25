@@ -123,3 +123,17 @@ it('returns 401 when unauthenticated user hits RoleOrPermissionMiddleware', func
 
     expect($response->status())->toBe(401);
 });
+
+it('ignores empty items in middleware parameters', function (): void {
+    $parser = new class
+    {
+        use AmdadulHaq\Custodian\Concerns\ParsesMiddlewareParameters;
+
+        public function parse(array $params): array
+        {
+            return $this->parseParameters($params);
+        }
+    };
+
+    expect($parser->parse(['users.create,', ' , admin']))->toBe(['users.create', 'admin']);
+});

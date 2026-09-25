@@ -33,7 +33,7 @@ All four gates (pest, phpstan, pint, rector dry-run) must pass before release; C
 
 **Wildcards** — a permission named `posts.*` matches any `posts.…` ability (`matchesWildcardPermission`), toggled by `config('custodian.wildcard.enabled')`. `is_wildcard` is auto-set in `Permission::booted()` when the name ends with `*`.
 
-**`custodian:upgrade`** — scans `app/` and `database/` for identifiers listed in the `REWRITES` regex map (`src/Commands/UpgradeCommand.php`) and rewrites them in place. When a future release removes or renames public API, add the old→new pattern to that map and add a corresponding test in `tests/Unit/UpgradeCommandTest.php`.
+**`custodian:upgrade`** — scans `app/`, `database/` (skipping `database/migrations/`), `resources/views/` and `tests/` for identifiers listed in the `REWRITES` regex map (`src/Commands/UpgradeCommand.php`) and rewrites them in place. When a future release removes or renames public API, add the old→new pattern to that map and add a corresponding test in `tests/Unit/UpgradeCommandTest.php`.
 
 **`custodian:doctor`** — read-only diagnostic command (`src/Commands/DoctorCommand.php`) checking configured model classes, table existence, and wildcard config. When adding new config keys, add a corresponding check here.
 
@@ -44,3 +44,8 @@ All four gates (pest, phpstan, pint, rector dry-run) must pass before release; C
 - PHPStan is at level 8 with full generics (`BelongsToMany<Model, $this>`, `Builder<self>`, `array<int, string>` etc.). `tests/Models` is included in the analysis paths alongside `src/` specifically so `Concerns\Roleable` gets analysed through the test `User` model (nothing in `src/` itself uses the trait).
 - Migrations ship as `.php.stub` files in `database/migrations/` and are published with timestamps by the provider.
 - On breaking changes, update all three docs together: README.md, UPGRADE.md (new numbered section with per-item **Action:** lines), CHANGELOG.md.
+
+## Git
+
+- Commit as the repo owner only: `Amdadul Haq <amdadulhaq781@gmail.com>`. No `Co-Authored-By`, `Claude-Session`, or other Claude attribution lines in commits or PRs.
+- Branch names describe the change (e.g. `fix/audit-findings`, `feat/team-roles`); never use a `claude/` prefix or generated names.

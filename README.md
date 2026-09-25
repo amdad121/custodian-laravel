@@ -317,7 +317,7 @@ $user->hasPermission('posts.publish'); // true
 
 The `is_wildcard` boolean is automatically set when the name ends with `*`.
 
-A permission named just `*` matches **every** permission — a super-admin grant. Wildcards can be disabled entirely via `CUSTODIAN_WILDCARD_ENABLED=false`.
+`posts.*` matches `posts.edit` but not the bare `posts`. A permission named just `*` matches **every** permission — a super-admin grant. Wildcards can be disabled entirely via `CUSTODIAN_WILDCARD_ENABLED=false`.
 
 ### Role Management
 
@@ -505,6 +505,8 @@ if (Gate::forUser($otherUser)->allows('posts.edit')) {
 // Authorize roles
 $this->authorize('administrator');
 ```
+
+The hook only handles checks **without** arguments. A check that passes a model, like `$user->can('update', $post)` or `$this->authorize('posts.edit', $post)`, goes to your policy or gate. Otherwise a role or permission named `update` would pass `update` on every model. To use a Custodian permission inside a policy, call `$user->hasPermission('posts.edit')` there.
 
 ### Blade Directives
 
@@ -720,6 +722,10 @@ throw PermissionDeniedException::roleOrPermissionNotAssigned('admin, users.delet
 throw ProtectedRoleException::cannotDelete('super-admin');
 ```
 
+Protection runs in the model's `deleting` event, so it only covers `$role->delete()`. A bulk query such as `Role::query()->where(...)->delete()` or a raw `DB` delete skips it. Deleting a role also removes it from every user, because the pivot table cascades.
+
+A user's permissions are cached on the model instance. If you change a role's permissions with `$role->givePermissionTo()` and so on, users you have already loaded keep the old permissions until you call `$user->refresh()` or load them again.
+
 Role and permission mutators (`assignRole`, `givePermissionTo`, `syncRoles`, `revokeRole`, ...) throw `Illuminate\Database\Eloquent\ModelNotFoundException` when a name does not resolve to an existing model — typos fail loudly instead of silently doing nothing.
 
 ## Events
@@ -734,12 +740,14 @@ use AmdadulHaq\Custodian\Events\PermissionRevoked;
 
 // Dispatched by $user->assignRole()/syncRoles() and $user->revokeRole()/revokeRoles()
 class RoleAssigned { public Model $subject; public array $roleIds; }
-class RoleRevoked { public Model $subject; public ?Model $role; } // $role is null when all roles were revoked
+class RoleRevoked { public Model $subject; public ?Model $role; public array $roleIds; } // $role is null when all roles were revoked
 
 // Dispatched by $role->givePermissionTo()/syncPermissions() and $role->revokePermissionTo()/revokeAllPermissions()
 class PermissionGranted { public Model $role; public array $permissionIds; }
-class PermissionRevoked { public Model $role; public ?Model $permission; } // null when all permissions were revoked
+class PermissionRevoked { public Model $role; public ?Model $permission; public array $permissionIds; } // null when all permissions were revoked
 ```
+
+The ID arrays list only what actually changed: a sync that attaches nothing dispatches no `RoleAssigned`/`PermissionGranted`, and revoking something that was not assigned dispatches nothing.
 
 ```php
 // app/Providers/EventServiceProvider.php (or a listener class)

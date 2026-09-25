@@ -26,8 +26,12 @@ abstract class BaseCommand extends Command implements PromptsForMissingInput
      */
     protected function findByIdentifier(Model $model, string $identifier, array $searchColumns): ?Model
     {
-        if (is_numeric($identifier)) {
-            return $model::query()->whereKey((int) $identifier)->first();
+        if (ctype_digit($identifier)) {
+            $found = $model::query()->whereKey((int) $identifier)->first();
+
+            if ($found instanceof Model) {
+                return $found;
+            }
         }
 
         return $model::query()
