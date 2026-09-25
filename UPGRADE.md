@@ -4,6 +4,10 @@ Current Version: **v2.1.2**
 
 ## Upgrading to the next release (from v2.1.x)
 
+Laravel 11 is no longer supported.
+
+- **Action:** upgrade your application to Laravel 12 or 13 before updating Custodian.
+
 The `Gate::before` hook no longer grants checks that pass arguments. `$user->can('posts.edit', $post)` now goes straight to your `PostPolicy` (or a `Gate::define`), even if the user has the `posts.edit` permission. Users with the literal `*` permission are the exception: they still pass every check.
 
 - **Action:** search for `can(`, `cannot(`, `authorize(`, `Gate::allows(` and `@can` calls that pass a model and rely on a Custodian permission or role. Either drop the argument, or check the permission inside the policy: `return $user->hasPermission('posts.edit');`.

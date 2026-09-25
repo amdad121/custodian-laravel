@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`amdadulhaq/custodian-laravel` — a role & permission package for Laravel 11/12/13 (PHP 8.2+). Users get permissions only through roles (no direct user→permission assignment). Tests run against Orchestra Testbench with an in-memory SQLite database.
+`amdadulhaq/custodian-laravel` — a role & permission package for Laravel 12/13 (PHP 8.2+). Users get permissions only through roles (no direct user→permission assignment). Tests run against Orchestra Testbench with an in-memory SQLite database.
 
 ## Commands
 
