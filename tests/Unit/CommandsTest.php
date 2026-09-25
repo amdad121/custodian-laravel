@@ -75,3 +75,24 @@ it('fails to assign a permission when the role does not exist', function (): voi
         ->expectsOutput('Role does not exist. Use a valid role ID or name.')
         ->assertFailed();
 });
+
+it('refuses to assign a role when the user identifier matches more than one user', function (): void {
+    User::query()->create(['name' => 'Sam', 'email' => 'sam1@example.com', 'password' => 'password']);
+    User::query()->create(['name' => 'Sam', 'email' => 'sam2@example.com', 'password' => 'password']);
+
+    $this->artisan('custodian:create-role', ['name' => 'admin', 'user' => 'Sam'])
+        ->expectsOutput('More than one record matches [Sam]. Use an ID instead.')
+        ->assertFailed();
+
+    expect(User::query()->whereHas('roles')->exists())->toBeFalse();
+});
+
+it('assigns a role to a user by email even when names are shared', function (): void {
+    User::query()->create(['name' => 'Sam', 'email' => 'sam1@example.com', 'password' => 'password']);
+    $target = User::query()->create(['name' => 'Sam', 'email' => 'sam2@example.com', 'password' => 'password']);
+
+    $this->artisan('custodian:create-role', ['name' => 'admin', 'user' => 'sam2@example.com'])
+        ->assertSuccessful();
+
+    expect($target->fresh()->hasRole('admin'))->toBeTrue();
+});

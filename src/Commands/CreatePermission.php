@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AmdadulHaq\Custodian\Commands;
 
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 class CreatePermission extends BaseCommand
 {
@@ -37,7 +38,14 @@ class CreatePermission extends BaseCommand
 
         if ($roleIdentifier) {
             $roleModel = $this->resolveModel('role');
-            $role = $this->findByIdentifier($roleModel, $roleIdentifier, ['name']);
+            try {
+                $role = $this->findByIdentifier($roleModel, $roleIdentifier, ['name']);
+            } catch (InvalidArgumentException $e) {
+                $this->error($e->getMessage());
+                $this->newLine();
+
+                return self::INVALID;
+            }
 
             if ($role instanceof Model) {
                 if (method_exists($role, 'givePermissionTo')) {

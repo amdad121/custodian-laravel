@@ -104,3 +104,16 @@ it('renders role directives as false for a user that is not Roleable', function 
     expect(Blade::render("@role('admin') yes @endrole"))->not->toContain('yes')
         ->and(Blade::render("@hasallroles('admin') yes @endhasallroles"))->not->toContain('yes');
 });
+
+it('still lets a super-admin with the * permission pass checks with arguments', function (): void {
+    $this->role->givePermissionTo(Permission::query()->create(['name' => '*']));
+
+    expect(Gate::forUser($this->user->fresh())->allows('update', new stdClass))->toBeTrue();
+});
+
+it('does not treat * as super-admin for checks with arguments when wildcards are disabled', function (): void {
+    config()->set('custodian.wildcard.enabled', false);
+    $this->role->givePermissionTo(Permission::query()->create(['name' => '*']));
+
+    expect(Gate::forUser($this->user->fresh())->allows('update', new stdClass))->toBeFalse();
+});

@@ -60,10 +60,12 @@ trait Roleable
     {
         $roleIds = $this->getModelIds('role', $this->flattenArgs($roles));
 
-        $this->roles()->syncWithoutDetaching($roleIds);
+        $synced = $this->roles()->syncWithoutDetaching($roleIds);
         $this->flushCustodianState();
 
-        event(new RoleAssigned($this, $roleIds));
+        if ($synced['attached'] !== []) {
+            event(new RoleAssigned($this, $this->castIds($synced['attached'])));
+        }
 
         return $this;
     }

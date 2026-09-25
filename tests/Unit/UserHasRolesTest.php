@@ -306,3 +306,11 @@ it('does not treat scientific notation as a role ID', function (): void {
     expect(fn () => $this->user->assignRole('1e0'))
         ->toThrow(ModelNotFoundException::class);
 });
+
+it('prefers an ID over a numeric name when both match', function (): void {
+    Role::query()->create(['name' => (string) $this->role->id]);
+
+    $this->user->assignRole((string) $this->role->id);
+
+    expect($this->user->getRoleNames())->toBe(['admin']);
+});

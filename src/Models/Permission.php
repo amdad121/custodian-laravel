@@ -143,13 +143,14 @@ class Permission extends Model
      */
     protected function scopeByGroup(Builder $query, string $group): Builder
     {
-        // Compare a literal prefix rather than LIKE, so `_` and `%` in the
-        // group name are not treated as wildcards.
-        $prefix = $group.'.';
+        // Escape LIKE wildcards so `_` and `%` in the group name match
+        // literally. `!` is used as the escape character because the
+        // backslash is quoted differently across database drivers.
+        $escaped = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $group);
 
         return $query->whereRaw(
-            'SUBSTR('.$query->getQuery()->getGrammar()->wrap('name').', 1, ?) = ?',
-            [mb_strlen($prefix), $prefix]
+            $query->getQuery()->getGrammar()->wrap('name')." like ? escape '!'",
+            [$escaped.'.%']
         );
     }
 }

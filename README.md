@@ -332,6 +332,9 @@ $user->assignRole($roleModel); // by role model
 $user->assignRole('administrator', 'editor');
 $user->assignRole([$roleModel, $roleId, 'moderator']);
 
+// A digit-only string is tried as an ID first, then as a name, so a
+// role named "2024" still resolves when no role has ID 2024.
+
 // Sync (replaces all)
 $user->syncRoles(['administrator', 'editor']);
 $user->syncRoles([$role1->id, $role2->id]);
@@ -506,7 +509,7 @@ if (Gate::forUser($otherUser)->allows('posts.edit')) {
 $this->authorize('administrator');
 ```
 
-The hook only handles checks **without** arguments. A check that passes a model, like `$user->can('update', $post)` or `$this->authorize('posts.edit', $post)`, goes to your policy or gate. Otherwise a role or permission named `update` would pass `update` on every model. To use a Custodian permission inside a policy, call `$user->hasPermission('posts.edit')` there.
+The hook only handles checks **without** arguments. A check that passes a model, like `$user->can('update', $post)` or `$this->authorize('posts.edit', $post)`, goes to your policy or gate. Otherwise a role or permission named `update` would pass `update` on every model. To use a Custodian permission inside a policy, call `$user->hasPermission('posts.edit')` there. The exception is a user with the literal `*` permission, who passes every check, with or without arguments.
 
 ### Blade Directives
 
@@ -575,7 +578,7 @@ php artisan custodian:create-permission users.delete "Delete Users" admin
 
 Both commands support Laravel Prompts when optional assignment arguments are omitted.
 
-- `custodian:create-role` prompts for an optional user identifier and accepts a user ID, email, or name.
+- `custodian:create-role` prompts for an optional user identifier and accepts a user ID, email, or name. If the email or name matches more than one user, the command fails; use the ID instead.
 - `custodian:create-permission` prompts for an optional role identifier and accepts a role ID or role name.
 
 **Upgrade helper:**
@@ -747,7 +750,7 @@ class PermissionGranted { public Model $role; public array $permissionIds; }
 class PermissionRevoked { public Model $role; public ?Model $permission; public array $permissionIds; } // null when all permissions were revoked
 ```
 
-The ID arrays list only what actually changed: a sync that attaches nothing dispatches no `RoleAssigned`/`PermissionGranted`, and revoking something that was not assigned dispatches nothing.
+The ID arrays list only what actually changed: an assign or sync that attaches nothing dispatches no `RoleAssigned`/`PermissionGranted`, and revoking something that was not assigned dispatches nothing.
 
 ```php
 // app/Providers/EventServiceProvider.php (or a listener class)

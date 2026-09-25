@@ -59,15 +59,13 @@ class CustodianServiceProvider extends ServiceProvider
      *
      * Checks that carry arguments (e.g. `can('update', $post)`) are
      * left to policies: a role or permission sharing a policy method's
-     * name must not authorize that action on every model.
+     * name must not authorize that action on every model. The one
+     * exception is a literal `*` permission (super-admin), which still
+     * passes every check.
      */
     protected function registerGateHook(): void
     {
         Gate::before(function (mixed $user, string $ability, array $arguments = []): ?bool {
-            if ($arguments !== []) {
-                return null;
-            }
-
             if (! $user instanceof Roleable) {
                 return null;
             }
@@ -76,8 +74,21 @@ class CustodianServiceProvider extends ServiceProvider
                 return null;
             }
 
+            if ($arguments !== []) {
+                return $this->isSuperAdmin($user) ? true : null;
+            }
+
             return ($user->hasPermission($ability) || $user->hasRole($ability)) ? true : null;
         });
+    }
+
+    /**
+     * Whether the user holds the literal `*` permission.
+     */
+    protected function isSuperAdmin(Roleable $user): bool
+    {
+        return config('custodian.wildcard.enabled', true)
+            && in_array('*', $user->getPermissionNames(), true);
     }
 
     /**

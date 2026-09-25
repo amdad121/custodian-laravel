@@ -178,3 +178,31 @@ it('includes every detached permission ID when all permissions are revoked', fun
 
     Event::assertDispatched(PermissionRevoked::class, fn (PermissionRevoked $event): bool => $event->permissionIds === [$this->permission->id]);
 });
+
+it('does not dispatch RoleAssigned when assigning a role the user already has', function (): void {
+    $this->user->assignRole($this->role);
+    Event::fake();
+
+    $this->user->assignRole($this->role);
+
+    Event::assertNotDispatched(RoleAssigned::class);
+});
+
+it('reports only newly attached role IDs when assigning roles', function (): void {
+    $author = Role::query()->create(['name' => 'author']);
+    $this->user->assignRole($this->role);
+    Event::fake();
+
+    $this->user->assignRole($this->role, $author);
+
+    Event::assertDispatched(RoleAssigned::class, fn (RoleAssigned $event): bool => $event->roleIds === [$author->id]);
+});
+
+it('does not dispatch PermissionGranted when giving a permission the role already has', function (): void {
+    $this->role->givePermissionTo($this->permission);
+    Event::fake();
+
+    $this->role->givePermissionTo($this->permission);
+
+    Event::assertNotDispatched(PermissionGranted::class);
+});

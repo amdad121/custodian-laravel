@@ -6,6 +6,7 @@ namespace AmdadulHaq\Custodian\Commands;
 
 use AmdadulHaq\Custodian\Contracts\Roleable;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 class CreateRole extends BaseCommand
 {
@@ -38,7 +39,14 @@ class CreateRole extends BaseCommand
 
         if ($userIdentifier) {
             $userModel = $this->resolveModel('user');
-            $user = $this->findByIdentifier($userModel, $userIdentifier, ['email', 'name']);
+            try {
+                $user = $this->findByIdentifier($userModel, $userIdentifier, ['email', 'name']);
+            } catch (InvalidArgumentException $e) {
+                $this->error($e->getMessage());
+                $this->newLine();
+
+                return self::INVALID;
+            }
 
             if ($user instanceof Model) {
                 if ($user instanceof Roleable) {

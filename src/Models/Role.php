@@ -146,10 +146,12 @@ class Role extends Model implements PermissionableContract
     {
         $permissionIds = $this->getModelIds('permission', $this->flattenArgs($permissions));
 
-        $this->permissions()->syncWithoutDetaching($permissionIds);
+        $synced = $this->permissions()->syncWithoutDetaching($permissionIds);
         $this->unsetRelation('permissions');
 
-        event(new PermissionGranted($this, $permissionIds));
+        if ($synced['attached'] !== []) {
+            event(new PermissionGranted($this, $this->castIds($synced['attached'])));
+        }
 
         return $this;
     }
