@@ -7,7 +7,7 @@ namespace AmdadulHaq\Custodian\Concerns;
 trait ParsesMiddlewareParameters
 {
     /**
-     * Parse comma-separated parameters into a flat array.
+     * Parse comma- or pipe-separated parameters into a flat array.
      *
      * @param  array<array-key, string>  $params
      * @return array<int, string>
@@ -16,7 +16,7 @@ trait ParsesMiddlewareParameters
     {
         $parsed = [];
         foreach ($params as $param) {
-            foreach (explode(',', $param) as $item) {
+            foreach (preg_split('/[,|]/', $param) ?: [] as $item) {
                 $item = trim($item);
 
                 if ($item !== '') {

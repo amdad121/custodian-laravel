@@ -4,6 +4,11 @@ All notable changes to `custodian-laravel` will be documented in this file.
 
 ## Unreleased
 
+- Deleting a role with `$role->delete()` now dispatches `RoleRevoked` for every user that held it, and deleting a permission dispatches `PermissionRevoked` for every role that held it. Before, the pivot rows cascaded silently and audit listeners never heard about them.
+- `Permission::is_wildcard` is now recalculated on every save, so updating it by hand can no longer leave it out of sync with the name.
+- `Permission::group` is now filled from the first segment of the name when it is not given.
+- Middleware now accepts pipe-separated items (`role:admin|editor`) as well as commas.
+- Docs: `Role::hasPermission()` checks exact permissions only (wildcards are resolved on the user), and `Role`/`Permission` allow mass assignment of every column.
 - **Breaking:** dropped Laravel 11 support. Custodian now requires Laravel 12 or 13.
 - The `Role` and `Permission` query scopes now use Laravel 12's `#[Scope]` attribute (`protected()`, `unprotected()`, `wildcard()`, `byGroup()`). Calling them as `Role::query()->protected()` is unchanged; only direct calls to the old `scopeProtected()`-style methods need updating.
 - **Breaking:** the `Gate::before` hook no longer grants checks that carry arguments (`$user->can('update', $post)`, `$this->authorize('posts.edit', $post)`). Those go to your policies/gates. Before, a role or permission named after a policy method (e.g. `update`) passed that policy for every model. Checks without arguments are unchanged. A user with the literal `*` permission still passes every check, with or without arguments.

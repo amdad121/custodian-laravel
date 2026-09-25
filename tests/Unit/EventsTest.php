@@ -206,3 +206,37 @@ it('does not dispatch PermissionGranted when giving a permission the role alread
 
     Event::assertNotDispatched(PermissionGranted::class);
 });
+
+it('dispatches RoleRevoked for every user when a role is deleted', function (): void {
+    $other = User::query()->create(['name' => 'Other', 'email' => 'other@example.com', 'password' => 'password']);
+    $this->user->assignRole($this->role);
+    $other->assignRole($this->role);
+    $roleId = $this->role->id;
+    Event::fake([RoleRevoked::class]);
+
+    $this->role->delete();
+
+    Event::assertDispatchedTimes(RoleRevoked::class, 2);
+    Event::assertDispatched(RoleRevoked::class, fn (RoleRevoked $event): bool => $event->subject->is($other) && $event->roleIds === [$roleId]);
+});
+
+it('does not dispatch RoleRevoked when deleting a role nobody has', function (): void {
+    Event::fake([RoleRevoked::class]);
+
+    $this->role->delete();
+
+    Event::assertNotDispatched(RoleRevoked::class);
+});
+
+it('dispatches PermissionRevoked for every role when a permission is deleted', function (): void {
+    $author = Role::query()->create(['name' => 'author']);
+    $this->role->givePermissionTo($this->permission);
+    $author->givePermissionTo($this->permission);
+    $permissionId = $this->permission->id;
+    Event::fake([PermissionRevoked::class]);
+
+    $this->permission->delete();
+
+    Event::assertDispatchedTimes(PermissionRevoked::class, 2);
+    Event::assertDispatched(PermissionRevoked::class, fn (PermissionRevoked $event): bool => $event->role->is($author) && $event->permissionIds === [$permissionId]);
+});
