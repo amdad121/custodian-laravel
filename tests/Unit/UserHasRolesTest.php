@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use AmdadulHaq\Custodian\Exceptions\PermissionDeniedException;
+use AmdadulHaq\Custodian\Facades\Custodian;
 use AmdadulHaq\Custodian\Models\Permission;
 use AmdadulHaq\Custodian\Models\Role;
 use AmdadulHaq\Custodian\Tests\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     $this->user = User::query()->create([
@@ -316,18 +319,18 @@ it('prefers an ID over a numeric name when both match', function (): void {
 });
 
 it('does not fail when a concurrent request inserts the same role assignment first', function (): void {
-    $pivot = AmdadulHaq\Custodian\Facades\Custodian::getPivotTableName(Illuminate\Support\Arr::only(config('custodian.models'), ['role', 'user']));
+    $pivot = Custodian::getPivotTableName(Arr::only(config('custodian.models'), ['role', 'user']));
     $injected = false;
 
     // Simulate a race: right after assignRole() reads the existing pivot
     // rows, another "request" inserts the same row.
-    Illuminate\Support\Facades\DB::listen(function ($query) use ($pivot, &$injected): void {
+    DB::listen(function ($query) use ($pivot, &$injected): void {
         if ($injected || ! str_starts_with(strtolower($query->sql), 'select') || ! str_contains($query->sql, $pivot)) {
             return;
         }
 
         $injected = true;
-        Illuminate\Support\Facades\DB::table($pivot)->insert(['role_id' => $this->role->id, 'user_id' => $this->user->id]);
+        DB::table($pivot)->insert(['role_id' => $this->role->id, 'user_id' => $this->user->id]);
     });
 
     $this->user->assignRole($this->role);

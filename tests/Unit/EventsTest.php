@@ -10,6 +10,7 @@ use AmdadulHaq\Custodian\Models\Permission;
 use AmdadulHaq\Custodian\Models\Role;
 use AmdadulHaq\Custodian\Tests\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
@@ -258,7 +259,7 @@ it('does not dispatch events for a mutation that is rolled back', function (): v
     });
 
     try {
-        Illuminate\Support\Facades\DB::transaction(function (): void {
+        DB::transaction(function (): void {
             $this->user->assignRole($this->role);
 
             throw new RuntimeException('rollback');
@@ -269,7 +270,7 @@ it('does not dispatch events for a mutation that is rolled back', function (): v
 
     expect($dispatched)->toBe(0);
 
-    Illuminate\Support\Facades\DB::transaction(fn () => $this->user->assignRole($this->role));
+    DB::transaction(fn () => $this->user->assignRole($this->role));
 
     expect($dispatched)->toBe(1);
 });
