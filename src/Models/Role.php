@@ -10,6 +10,7 @@ use AmdadulHaq\Custodian\Events\PermissionGranted;
 use AmdadulHaq\Custodian\Events\PermissionRevoked;
 use AmdadulHaq\Custodian\Exceptions\ProtectedRoleException;
 use AmdadulHaq\Custodian\Facades\Custodian;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -228,7 +229,8 @@ class Role extends Model implements PermissionableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    protected function scopeProtected(Builder $query): Builder
+    #[Scope]
+    protected function protected(Builder $query): Builder
     {
         return $query->where('is_protected', true);
     }
@@ -239,7 +241,8 @@ class Role extends Model implements PermissionableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    protected function scopeUnprotected(Builder $query): Builder
+    #[Scope]
+    protected function unprotected(Builder $query): Builder
     {
         return $query->where('is_protected', false);
     }

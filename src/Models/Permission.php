@@ -7,6 +7,7 @@ namespace AmdadulHaq\Custodian\Models;
 use AmdadulHaq\Custodian\Concerns\HasCustodianHelpers;
 use AmdadulHaq\Custodian\Enums\PermissionType;
 use AmdadulHaq\Custodian\Facades\Custodian;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -130,7 +131,8 @@ class Permission extends Model
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    protected function scopeWildcard(Builder $query): Builder
+    #[Scope]
+    protected function wildcard(Builder $query): Builder
     {
         return $query->where('name', 'like', '%*');
     }
@@ -141,7 +143,8 @@ class Permission extends Model
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    protected function scopeByGroup(Builder $query, string $group): Builder
+    #[Scope]
+    protected function byGroup(Builder $query, string $group): Builder
     {
         // Escape LIKE wildcards so `_` and `%` in the group name match
         // literally. `!` is used as the escape character because the
