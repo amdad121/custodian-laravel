@@ -6,6 +6,7 @@ use AmdadulHaq\Custodian\Exceptions\PermissionDeniedException;
 use AmdadulHaq\Custodian\Models\Permission;
 use AmdadulHaq\Custodian\Models\Role;
 use AmdadulHaq\Custodian\Tests\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 beforeEach(function (): void {
     $this->user = User::query()->create([
@@ -303,5 +304,5 @@ it('resolves roles with numeric names by name when no such ID exists', function 
 
 it('does not treat scientific notation as a role ID', function (): void {
     expect(fn () => $this->user->assignRole('1e0'))
-        ->toThrow(Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        ->toThrow(ModelNotFoundException::class);
 });
