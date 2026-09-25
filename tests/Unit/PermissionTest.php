@@ -110,3 +110,19 @@ it('treats percent signs and the escape character in byGroup as literal characte
     expect(Permission::query()->byGroup('a%b')->pluck('name')->all())->toBe(['a%b.view'])
         ->and(Permission::query()->byGroup('a!b')->pluck('name')->all())->toBe(['a!b.view']);
 });
+
+it('recalculates is_wildcard on every save so it cannot drift from the name', function (): void {
+    $permission = Permission::query()->create(['name' => 'reports.view']);
+
+    $permission->update(['is_wildcard' => true]);
+
+    expect($permission->fresh()->is_wildcard)->toBeFalse();
+});
+
+it('fills group from the name when none is given', function (): void {
+    expect(Permission::query()->create(['name' => 'invoices.send'])->group)->toBe('invoices');
+});
+
+it('keeps an explicitly given group', function (): void {
+    expect(Permission::query()->create(['name' => 'invoices.send', 'group' => 'billing'])->fresh()->group)->toBe('billing');
+});

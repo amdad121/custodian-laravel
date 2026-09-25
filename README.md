@@ -266,7 +266,7 @@ $permission = Permission::create([
     'name' => 'users.delete',         // required, unique — used by all checks
     'label' => 'Delete Users',        // optional display name
     'description' => 'Permanently remove user accounts',
-    'group' => 'users',               // optional stored grouping
+    'group' => 'users',               // optional; defaults to the first segment of the name
 ]);
 
 // Wildcard permission — is_wildcard is set automatically when name ends with '*'
@@ -391,7 +391,8 @@ $role->revokeAllPermissions();
 **Checking Role Permissions:**
 
 ```php
-$role->hasPermission('users.edit');    // Check if role has permission
+$role->hasPermission('users.edit');    // Exact match only: a role holding 'users.*' returns false here.
+                                       // Wildcards are resolved on the user: $user->hasPermission('users.edit')
 $role->getPermissionNames();             // Get all permission names
 ```
 
@@ -455,7 +456,7 @@ All middleware supports multiple values (requires ANY):
 // Role middleware
 Route::middleware('role:administrator')->get('/admin', [AdminController::class, 'index']);
 
-// Multiple roles (requires ANY)
+// Multiple roles (requires ANY); commas and pipes both work: 'role:admin|editor'
 Route::middleware('role:admin,editor')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 });
@@ -725,7 +726,9 @@ throw PermissionDeniedException::roleOrPermissionNotAssigned('admin, users.delet
 throw ProtectedRoleException::cannotDelete('super-admin');
 ```
 
-Protection runs in the model's `deleting` event, so it only covers `$role->delete()`. A bulk query such as `Role::query()->where(...)->delete()` or a raw `DB` delete skips it. Deleting a role also removes it from every user, because the pivot table cascades.
+Protection runs in the model's `deleting` event, so it only covers `$role->delete()`. A bulk query such as `Role::query()->where(...)->delete()` or a raw `DB` delete skips it. Deleting a role also removes it from every user, because the pivot table cascades. A model delete (`$role->delete()`) dispatches `RoleRevoked` for each of those users, and deleting a permission dispatches `PermissionRevoked` for each role that held it. Bulk and raw deletes dispatch nothing.
+
+`Role` and `Permission` allow mass assignment of every column, including `is_protected`. Don't pass request input straight to `Role::create($request->all())` or `update()`; pick the fields you accept with `$request->only([...])` or `$request->validated()`.
 
 A user's permissions are cached on the model instance. If you change a role's permissions with `$role->givePermissionTo()` and so on, users you have already loaded keep the old permissions until you call `$user->refresh()` or load them again.
 

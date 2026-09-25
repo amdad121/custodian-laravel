@@ -6,9 +6,11 @@ namespace AmdadulHaq\Custodian\Models;
 
 use AmdadulHaq\Custodian\Concerns\HasCustodianHelpers;
 use AmdadulHaq\Custodian\Enums\PermissionType;
+use AmdadulHaq\Custodian\Events\PermissionRevoked;
 use AmdadulHaq\Custodian\Facades\Custodian;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Arr;
@@ -25,6 +27,14 @@ class Permission extends Model
     use HasCustodianHelpers;
 
     protected $guarded = [];
+
+    /**
+     * Roles holding this permission, captured before a delete so
+     * PermissionRevoked can be dispatched once the pivot rows cascade.
+     *
+     * @var Collection<int, Model>|null
+     */
+    protected ?Collection $rolesBeforeDelete = null;
 
     /**
      * Get the permission name.
@@ -119,9 +129,24 @@ class Permission extends Model
     protected static function booted(): void
     {
         static::saving(function (self $permission): void {
-            if ($permission->isDirty('name')) {
-                $permission->is_wildcard = str_ends_with($permission->name, '*');
+            // Derived from the name on every save, so it can never drift.
+            $permission->is_wildcard = str_ends_with($permission->name, '*');
+
+            if ($permission->group === null || $permission->group === '') {
+                $permission->group = $permission->getGroup();
             }
+        });
+
+        static::deleting(function (self $permission): void {
+            $permission->rolesBeforeDelete = $permission->roles()->get();
+        });
+
+        static::deleted(function (self $permission): void {
+            foreach ($permission->rolesBeforeDelete ?? [] as $role) {
+                event(new PermissionRevoked($role, $permission, [(int) $permission->getKey()]));
+            }
+
+            $permission->rolesBeforeDelete = null;
         });
     }
 

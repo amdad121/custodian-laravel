@@ -138,3 +138,11 @@ it('ignores empty items in middleware parameters', function (): void {
 
     expect($parser->parse(['users.create,', ' , admin']))->toBe(['users.create', 'admin']);
 });
+
+it('accepts pipe-separated roles in RoleMiddleware', function (): void {
+    $this->user->assignRole($this->role);
+
+    Route::middleware([RoleMiddleware::class.':editor|admin'])->get('/pipe-roles', fn (): string => 'ok');
+
+    $this->actingAs($this->user)->get('/pipe-roles')->assertOk();
+});

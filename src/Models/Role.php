@@ -8,10 +8,12 @@ use AmdadulHaq\Custodian\Concerns\HasCustodianHelpers;
 use AmdadulHaq\Custodian\Contracts\Permissionable as PermissionableContract;
 use AmdadulHaq\Custodian\Events\PermissionGranted;
 use AmdadulHaq\Custodian\Events\PermissionRevoked;
+use AmdadulHaq\Custodian\Events\RoleRevoked;
 use AmdadulHaq\Custodian\Exceptions\ProtectedRoleException;
 use AmdadulHaq\Custodian\Facades\Custodian;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Arr;
@@ -29,6 +31,14 @@ class Role extends Model implements PermissionableContract
     protected $guarded = [];
 
     /**
+     * Users holding this role, captured before a delete so RoleRevoked
+     * can be dispatched once the pivot rows cascade.
+     *
+     * @var Collection<int, Model>|null
+     */
+    protected ?Collection $usersBeforeDelete = null;
+
+    /**
      * Prevent protected roles from being deleted.
      */
     protected static function booted(): void
@@ -37,6 +47,16 @@ class Role extends Model implements PermissionableContract
             if ($role->isProtectedRole()) {
                 throw ProtectedRoleException::cannotDelete($role->getName());
             }
+
+            $role->usersBeforeDelete = $role->users()->get();
+        });
+
+        static::deleted(function (self $role): void {
+            foreach ($role->usersBeforeDelete ?? [] as $user) {
+                event(new RoleRevoked($user, $role, [(int) $role->getKey()]));
+            }
+
+            $role->usersBeforeDelete = null;
         });
     }
 
