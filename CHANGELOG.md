@@ -4,6 +4,8 @@ All notable changes to `custodian-laravel` will be documented in this file.
 
 ## Unreleased
 
+- **Breaking:** dropped Laravel 11 support. Custodian now requires Laravel 12 or 13.
+- The `Role` and `Permission` query scopes now use Laravel 12's `#[Scope]` attribute (`protected()`, `unprotected()`, `wildcard()`, `byGroup()`). Calling them as `Role::query()->protected()` is unchanged; only direct calls to the old `scopeProtected()`-style methods need updating.
 - **Breaking:** the `Gate::before` hook no longer grants checks that carry arguments (`$user->can('update', $post)`, `$this->authorize('posts.edit', $post)`). Those go to your policies/gates. Before, a role or permission named after a policy method (e.g. `update`) passed that policy for every model. Checks without arguments are unchanged. A user with the literal `*` permission still passes every check, with or without arguments.
 - **Breaking:** `RoleAssigned`/`PermissionGranted` from `assignRole()`/`givePermissionTo()`/`syncRoles()`/`syncPermissions()` now carry only the IDs actually attached, and are not dispatched when nothing was attached. `RoleRevoked`/`PermissionRevoked` gain a `roleIds`/`permissionIds` property listing the detached IDs, and are not dispatched by `revokeRole()`/`revokePermissionTo()` when nothing was detached.
 - Fixed: `hasAllRoles(collect([...]))` required only one of the roles; it now requires all. `hasAllRoles()` with no roles now returns `false`.

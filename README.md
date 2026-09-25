@@ -61,7 +61,7 @@ Route::middleware('role:admin')->get('/admin', [AdminController::class, 'index']
 
 ## Features
 
-- **Modern PHP & Laravel** - Built for PHP 8.2+ and Laravel 11/12/13
+- **Modern PHP & Laravel** - Built for PHP 8.2+ and Laravel 12/13
 - **Flexible Permission System** - Users can have permissions via roles
 - **Wildcard Permissions** - Use `posts.*` to match all post-related permissions
 - **Real-Time Gate Integration** - A single `Gate::before` hook resolves permissions and roles live; native `@can`, `@canany`, `@cannot` support with no stale definitions
@@ -114,7 +114,7 @@ Building and maintaining high-quality open-source packages takes hundreds of hou
 ### Requirements
 
 - **PHP**: 8.2, 8.3, 8.4, or 8.5
-- **Laravel**: 11.x, 12.x, or 13.x
+- **Laravel**: 12.x or 13.x
 - **Database**: MySQL 5.7+, PostgreSQL 9.6+, SQLite 3.8+, or SQL Server 2017+
 
 ### Step 1: Install via Composer
