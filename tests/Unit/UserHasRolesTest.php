@@ -314,3 +314,24 @@ it('prefers an ID over a numeric name when both match', function (): void {
 
     expect($this->user->getRoleNames())->toBe(['admin']);
 });
+
+it('does not fail when a concurrent request inserts the same role assignment first', function (): void {
+    $pivot = AmdadulHaq\Custodian\Facades\Custodian::getPivotTableName(Illuminate\Support\Arr::only(config('custodian.models'), ['role', 'user']));
+    $injected = false;
+
+    // Simulate a race: right after assignRole() reads the existing pivot
+    // rows, another "request" inserts the same row.
+    Illuminate\Support\Facades\DB::listen(function ($query) use ($pivot, &$injected): void {
+        if ($injected || ! str_starts_with(strtolower($query->sql), 'select') || ! str_contains($query->sql, $pivot)) {
+            return;
+        }
+
+        $injected = true;
+        Illuminate\Support\Facades\DB::table($pivot)->insert(['role_id' => $this->role->id, 'user_id' => $this->user->id]);
+    });
+
+    $this->user->assignRole($this->role);
+
+    expect($injected)->toBeTrue()
+        ->and($this->user->fresh()->hasRole('admin'))->toBeTrue();
+});

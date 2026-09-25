@@ -266,7 +266,7 @@ $permission = Permission::create([
     'name' => 'users.delete',         // required, unique — used by all checks
     'label' => 'Delete Users',        // optional display name
     'description' => 'Permanently remove user accounts',
-    'group' => 'users',               // optional; defaults to the first segment of the name
+    'group' => 'users',               // optional; when empty it is filled from the first segment of the name on save
 ]);
 
 // Wildcard permission — is_wildcard is set automatically when name ends with '*'
@@ -455,6 +455,8 @@ All middleware supports multiple values (requires ANY):
 ```php
 // Role middleware
 Route::middleware('role:administrator')->get('/admin', [AdminController::class, 'index']);
+
+// Guests get 401. A logged-in user whose model doesn't use Roleable gets 403.
 
 // Multiple roles (requires ANY); commas and pipes both work: 'role:admin|editor'
 Route::middleware('role:admin,editor')->group(function () {
@@ -726,7 +728,9 @@ throw PermissionDeniedException::roleOrPermissionNotAssigned('admin, users.delet
 throw ProtectedRoleException::cannotDelete('super-admin');
 ```
 
-Protection runs in the model's `deleting` event, so it only covers `$role->delete()`. A bulk query such as `Role::query()->where(...)->delete()` or a raw `DB` delete skips it. Deleting a role also removes it from every user, because the pivot table cascades. A model delete (`$role->delete()`) dispatches `RoleRevoked` for each of those users, and deleting a permission dispatches `PermissionRevoked` for each role that held it. Bulk and raw deletes dispatch nothing.
+`is_protected` only blocks deletion. A protected role can still be renamed, have its permissions changed, or have `is_protected` set back to `false` and then be deleted.
+
+Protection runs in the model's `deleting` event, so it only covers `$role->delete()`. A bulk query such as `Role::query()->where(...)->delete()` or a raw `DB` delete skips it. Deleting a role also removes it from every user, because the pivot table cascades. A model delete (`$role->delete()`) dispatches `RoleRevoked` for each of those users (loaded in chunks, so widely held roles are safe to delete) and one `PermissionRevoked` listing the role's permission IDs. Deleting a permission dispatches `PermissionRevoked` for each role that held it. Bulk and raw deletes dispatch nothing.
 
 `Role` and `Permission` allow mass assignment of every column, including `is_protected`. Don't pass request input straight to `Role::create($request->all())` or `update()`; pick the fields you accept with `$request->only([...])` or `$request->validated()`.
 
@@ -752,6 +756,8 @@ class RoleRevoked { public Model $subject; public ?Model $role; public array $ro
 class PermissionGranted { public Model $role; public array $permissionIds; }
 class PermissionRevoked { public Model $role; public ?Model $permission; public array $permissionIds; } // null when all permissions were revoked
 ```
+
+All four events implement `ShouldDispatchAfterCommit`: inside a database transaction they fire only once it commits, and never if it rolls back.
 
 The ID arrays list only what actually changed: an assign or sync that attaches nothing dispatches no `RoleAssigned`/`PermissionGranted`, and revoking something that was not assigned dispatches nothing.
 

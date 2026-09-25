@@ -6,6 +6,8 @@ namespace AmdadulHaq\Custodian\Concerns;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
 
 trait HasCustodianHelpers
@@ -68,6 +70,25 @@ trait HasCustodianHelpers
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Attach without detaching, retrying once if a concurrent request
+     * inserted the same pivot row between the read and the insert.
+     *
+     * @template TDeclaringModel of Model
+     *
+     * @param  BelongsToMany<Model, TDeclaringModel>  $relation
+     * @param  array<int, int>  $ids
+     * @return array<string, mixed>
+     */
+    protected function attachMissing(BelongsToMany $relation, array $ids): array
+    {
+        try {
+            return $relation->syncWithoutDetaching($ids);
+        } catch (UniqueConstraintViolationException) {
+            return $relation->syncWithoutDetaching($ids);
+        }
     }
 
     /**

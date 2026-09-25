@@ -10,7 +10,6 @@ use AmdadulHaq\Custodian\Events\PermissionRevoked;
 use AmdadulHaq\Custodian\Facades\Custodian;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Arr;
@@ -29,12 +28,12 @@ class Permission extends Model
     protected $guarded = [];
 
     /**
-     * Roles holding this permission, captured before a delete so
-     * PermissionRevoked can be dispatched once the pivot rows cascade.
+     * IDs of the roles holding this permission, captured before a delete
+     * so PermissionRevoked can be dispatched once the pivot rows cascade.
      *
-     * @var Collection<int, Model>|null
+     * @var array<int, mixed>
      */
-    protected ?Collection $rolesBeforeDelete = null;
+    protected array $roleIdsBeforeDelete = [];
 
     /**
      * Get the permission name.
@@ -138,15 +137,21 @@ class Permission extends Model
         });
 
         static::deleting(function (self $permission): void {
-            $permission->rolesBeforeDelete = $permission->roles()->get();
+            $permission->roleIdsBeforeDelete = $permission->roles()->pluck($permission->roles()->getQualifiedRelatedKeyName())->all();
         });
 
         static::deleted(function (self $permission): void {
-            foreach ($permission->rolesBeforeDelete ?? [] as $role) {
-                event(new PermissionRevoked($role, $permission, [(int) $permission->getKey()]));
+            if ($permission->roleIdsBeforeDelete !== []) {
+                /** @var class-string<Model> $roleModel */
+                $roleModel = config('custodian.models.role');
+
+                $roleModel::query()
+                    ->whereKey($permission->roleIdsBeforeDelete)
+                    ->lazyById()
+                    ->each(fn (Model $role) => event(new PermissionRevoked($role, $permission, [(int) $permission->getKey()])));
             }
 
-            $permission->rolesBeforeDelete = null;
+            $permission->roleIdsBeforeDelete = [];
         });
     }
 

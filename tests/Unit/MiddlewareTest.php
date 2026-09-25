@@ -146,3 +146,15 @@ it('accepts pipe-separated roles in RoleMiddleware', function (): void {
 
     $this->actingAs($this->user)->get('/pipe-roles')->assertOk();
 });
+
+it('returns 403, not 401, when the logged-in user cannot hold roles', function (string $middleware): void {
+    $apiClient = new class extends Illuminate\Foundation\Auth\User {};
+
+    Route::middleware([$middleware.':admin'])->get('/non-roleable', fn (): string => 'ok');
+
+    $this->actingAs($apiClient)->get('/non-roleable')->assertForbidden();
+})->with([
+    RoleMiddleware::class,
+    PermissionMiddleware::class,
+    RoleOrPermissionMiddleware::class,
+]);

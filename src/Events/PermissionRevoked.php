@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace AmdadulHaq\Custodian\Events;
 
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Database\Eloquent\Model;
 
 /** Dispatched after one or more permissions are revoked from a role. */
-class PermissionRevoked
+class PermissionRevoked implements ShouldDispatchAfterCommit
 {
     public function __construct(
         public readonly Model $role,
