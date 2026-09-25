@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use AmdadulHaq\Custodian\Exceptions\PermissionDeniedException;
+use AmdadulHaq\Custodian\Facades\Custodian;
 use AmdadulHaq\Custodian\Models\Permission;
 use AmdadulHaq\Custodian\Models\Role;
 use AmdadulHaq\Custodian\Tests\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     $this->user = User::query()->create([
@@ -313,4 +316,25 @@ it('prefers an ID over a numeric name when both match', function (): void {
     $this->user->assignRole((string) $this->role->id);
 
     expect($this->user->getRoleNames())->toBe(['admin']);
+});
+
+it('does not fail when a concurrent request inserts the same role assignment first', function (): void {
+    $pivot = Custodian::getPivotTableName(Arr::only(config('custodian.models'), ['role', 'user']));
+    $injected = false;
+
+    // Simulate a race: right after assignRole() reads the existing pivot
+    // rows, another "request" inserts the same row.
+    DB::listen(function ($query) use ($pivot, &$injected): void {
+        if ($injected || ! str_starts_with(strtolower($query->sql), 'select') || ! str_contains($query->sql, $pivot)) {
+            return;
+        }
+
+        $injected = true;
+        DB::table($pivot)->insert(['role_id' => $this->role->id, 'user_id' => $this->user->id]);
+    });
+
+    $this->user->assignRole($this->role);
+
+    expect($injected)->toBeTrue()
+        ->and($this->user->fresh()->hasRole('admin'))->toBeTrue();
 });

@@ -4,6 +4,11 @@ All notable changes to `custodian-laravel` will be documented in this file.
 
 ## Unreleased
 
+- Deleting a role no longer loads every user that held it into memory: only IDs are captured before the delete, and users are loaded in chunks to dispatch `RoleRevoked`. Deleting a role also dispatches one `PermissionRevoked` with the role's permission IDs.
+- All four events now implement `ShouldDispatchAfterCommit`, so a mutation inside a rolled-back transaction no longer dispatches events.
+- Middleware returns 403 instead of 401 when the logged-in user's model doesn't use `Roleable`. Guests still get 401.
+- Assigning a role or permission no longer throws a unique-constraint error when a concurrent request assigned it first.
+- Docs: what `is_protected` covers, and that an empty `group` is refilled from the name.
 - Deleting a role with `$role->delete()` now dispatches `RoleRevoked` for every user that held it, and deleting a permission dispatches `PermissionRevoked` for every role that held it. Before, the pivot rows cascaded silently and audit listeners never heard about them.
 - `Permission::is_wildcard` is now recalculated on every save, so updating it by hand can no longer leave it out of sync with the name.
 - `Permission::group` is now filled from the first segment of the name when it is not given.

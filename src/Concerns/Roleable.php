@@ -60,7 +60,7 @@ trait Roleable
     {
         $roleIds = $this->getModelIds('role', $this->flattenArgs($roles));
 
-        $synced = $this->roles()->syncWithoutDetaching($roleIds);
+        $synced = $this->attachMissing($this->roles(), $roleIds);
         $this->flushCustodianState();
 
         if ($synced['attached'] !== []) {
@@ -82,7 +82,7 @@ trait Roleable
 
         $synced = $detach
             ? $this->roles()->sync($roleIds)
-            : $this->roles()->syncWithoutDetaching($roleIds);
+            : $this->attachMissing($this->roles(), $roleIds);
 
         $this->flushCustodianState();
 

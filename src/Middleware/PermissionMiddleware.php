@@ -18,7 +18,12 @@ class PermissionMiddleware
     {
         $user = $request->user();
 
-        abort_unless($user instanceof Roleable, 401, 'Unauthenticated.');
+        abort_if($user === null, 401, 'Unauthenticated.');
+
+        // Logged in, but as a model that cannot hold roles (e.g. another guard).
+        if (! $user instanceof Roleable) {
+            throw PermissionDeniedException::create(implode(', ', $permissions));
+        }
 
         $flattenedPermissions = $this->parseParameters($permissions);
 

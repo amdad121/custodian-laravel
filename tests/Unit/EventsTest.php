@@ -10,6 +10,7 @@ use AmdadulHaq\Custodian\Models\Permission;
 use AmdadulHaq\Custodian\Models\Role;
 use AmdadulHaq\Custodian\Tests\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(function (): void {
@@ -239,4 +240,37 @@ it('dispatches PermissionRevoked for every role when a permission is deleted', f
 
     Event::assertDispatchedTimes(PermissionRevoked::class, 2);
     Event::assertDispatched(PermissionRevoked::class, fn (PermissionRevoked $event): bool => $event->role->is($author) && $event->permissionIds === [$permissionId]);
+});
+
+it('dispatches PermissionRevoked with the role\'s permission IDs when a role is deleted', function (): void {
+    $this->role->givePermissionTo($this->permission);
+    $permissionId = $this->permission->id;
+    Event::fake([PermissionRevoked::class]);
+
+    $this->role->delete();
+
+    Event::assertDispatched(PermissionRevoked::class, fn (PermissionRevoked $event): bool => $event->permission === null && $event->permissionIds === [$permissionId]);
+});
+
+it('does not dispatch events for a mutation that is rolled back', function (): void {
+    $dispatched = 0;
+    Event::listen(RoleAssigned::class, function () use (&$dispatched): void {
+        $dispatched++;
+    });
+
+    try {
+        DB::transaction(function (): void {
+            $this->user->assignRole($this->role);
+
+            throw new RuntimeException('rollback');
+        });
+    } catch (RuntimeException) {
+        // expected
+    }
+
+    expect($dispatched)->toBe(0);
+
+    DB::transaction(fn () => $this->user->assignRole($this->role));
+
+    expect($dispatched)->toBe(1);
 });

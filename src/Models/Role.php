@@ -13,7 +13,6 @@ use AmdadulHaq\Custodian\Exceptions\ProtectedRoleException;
 use AmdadulHaq\Custodian\Facades\Custodian;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Arr;
@@ -31,12 +30,20 @@ class Role extends Model implements PermissionableContract
     protected $guarded = [];
 
     /**
-     * Users holding this role, captured before a delete so RoleRevoked
-     * can be dispatched once the pivot rows cascade.
+     * IDs of the users holding this role, captured before a delete so
+     * RoleRevoked can be dispatched once the pivot rows cascade.
      *
-     * @var Collection<int, Model>|null
+     * @var array<int, mixed>
      */
-    protected ?Collection $usersBeforeDelete = null;
+    protected array $userIdsBeforeDelete = [];
+
+    /**
+     * IDs of this role's permissions, captured before a delete so
+     * PermissionRevoked can be dispatched once the pivot rows cascade.
+     *
+     * @var array<int, int>
+     */
+    protected array $permissionIdsBeforeDelete = [];
 
     /**
      * Prevent protected roles from being deleted.
@@ -48,15 +55,31 @@ class Role extends Model implements PermissionableContract
                 throw ProtectedRoleException::cannotDelete($role->getName());
             }
 
-            $role->usersBeforeDelete = $role->users()->get();
+            // Only IDs are held across the delete; users are loaded in
+            // chunks afterwards so a widely held role can't exhaust memory.
+            $role->userIdsBeforeDelete = $role->users()->pluck($role->users()->getQualifiedRelatedKeyName())->all();
+            $role->permissionIdsBeforeDelete = $role->castIds(
+                $role->permissions()->pluck($role->permissions()->getQualifiedRelatedKeyName())->all()
+            );
         });
 
         static::deleted(function (self $role): void {
-            foreach ($role->usersBeforeDelete ?? [] as $user) {
-                event(new RoleRevoked($user, $role, [(int) $role->getKey()]));
+            if ($role->permissionIdsBeforeDelete !== []) {
+                event(new PermissionRevoked($role, null, $role->permissionIdsBeforeDelete));
             }
 
-            $role->usersBeforeDelete = null;
+            if ($role->userIdsBeforeDelete !== []) {
+                /** @var class-string<Model> $userModel */
+                $userModel = config('custodian.models.user');
+
+                $userModel::query()
+                    ->whereKey($role->userIdsBeforeDelete)
+                    ->lazyById()
+                    ->each(fn (Model $user) => event(new RoleRevoked($user, $role, [(int) $role->getKey()])));
+            }
+
+            $role->userIdsBeforeDelete = [];
+            $role->permissionIdsBeforeDelete = [];
         });
     }
 
@@ -167,7 +190,7 @@ class Role extends Model implements PermissionableContract
     {
         $permissionIds = $this->getModelIds('permission', $this->flattenArgs($permissions));
 
-        $synced = $this->permissions()->syncWithoutDetaching($permissionIds);
+        $synced = $this->attachMissing($this->permissions(), $permissionIds);
         $this->unsetRelation('permissions');
 
         if ($synced['attached'] !== []) {
