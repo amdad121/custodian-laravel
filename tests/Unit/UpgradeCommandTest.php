@@ -72,3 +72,25 @@ it('rewrites usages in views and tests directories', function (): void {
         File::delete($testFile);
     }
 });
+
+it('does not rewrite migrations', function (): void {
+    $migration = database_path('migrations/2026_01_01_000000_rename_is_guarded_on_roles.php');
+    $contents = <<<'PHP'
+        <?php
+
+        $table->renameColumn('is_guarded', 'is_protected');
+        PHP;
+
+    File::ensureDirectoryExists(database_path('migrations'));
+    File::put($migration, $contents);
+
+    try {
+        $this->artisan('custodian:upgrade')
+            ->expectsOutputToContain('No upgrade rewrites were needed.')
+            ->assertExitCode(0);
+
+        expect(File::get($migration))->toBe($contents);
+    } finally {
+        File::delete($migration);
+    }
+});

@@ -143,6 +143,14 @@ class Permission extends Model
      */
     protected function scopeByGroup(Builder $query, string $group): Builder
     {
-        return $query->where('name', 'like', $group.'.%');
+        // Escape LIKE wildcards so `_` and `%` in the group name match
+        // literally. `!` is used as the escape character because the
+        // backslash is quoted differently across database drivers.
+        $escaped = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $group);
+
+        return $query->whereRaw(
+            $query->getQuery()->getGrammar()->wrap('name')." like ? escape '!'",
+            [$escaped.'.%']
+        );
     }
 }

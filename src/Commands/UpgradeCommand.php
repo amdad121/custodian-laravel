@@ -56,9 +56,18 @@ class UpgradeCommand extends Command
 
         $changed = 0;
 
+        // Never rewrite migrations: the migration that created `is_guarded`
+        // (and any migration renaming it) must keep the old column name, or
+        // a fresh `migrate` breaks.
+        $migrations = realpath(database_path('migrations')) ?: database_path('migrations');
+
         foreach ($paths as $path) {
             foreach (File::allFiles($path) as $file) {
                 if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+
+                if (str_starts_with($file->getRealPath() ?: $file->getPathname(), $migrations.DIRECTORY_SEPARATOR)) {
                     continue;
                 }
 

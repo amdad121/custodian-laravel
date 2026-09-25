@@ -25,11 +25,21 @@ trait HasCustodianHelpers
         $modelClass = config('custodian.models.'.$configKey);
         $query = $modelClass::query();
 
-        if (is_numeric($identifier)) {
-            $query->whereKey((int) $identifier);
-        } else {
-            $query->where('name', $identifier);
+        // Digit-only strings are tried as a key first, then as a name, so
+        // roles/permissions with numeric names (e.g. "2024") still resolve.
+        if (is_int($identifier) || ctype_digit($identifier)) {
+            $model = $query->clone()->whereKey((int) $identifier)->first();
+
+            if ($model instanceof Model || is_int($identifier)) {
+                if (! $model instanceof Model && $throw) {
+                    throw (new ModelNotFoundException)->setModel($modelClass, [$identifier]);
+                }
+
+                return $model;
+            }
         }
+
+        $query->where('name', $identifier);
 
         return $throw ? $query->firstOrFail() : $query->first();
     }
@@ -50,14 +60,25 @@ trait HasCustodianHelpers
                     return (int) $item->getKey();
                 }
 
-                if (is_numeric($item)) {
-                    return (int) $item;
+                if (is_int($item)) {
+                    return $item;
                 }
 
                 return (int) $this->resolveModel($configKey, $item)->getKey();
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Cast pivot IDs returned by sync() to integers.
+     *
+     * @param  array<array-key, mixed>  $ids
+     * @return array<int, int>
+     */
+    protected function castIds(array $ids): array
+    {
+        return array_values(array_map(intval(...), $ids));
     }
 
     /**

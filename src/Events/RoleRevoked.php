@@ -12,5 +12,7 @@ class RoleRevoked
     public function __construct(
         public readonly Model $subject,
         public readonly ?Model $role = null,
+        /** @var array<int, int> IDs actually detached; for a revoke-all, every ID that was attached. */
+        public readonly array $roleIds = [],
     ) {}
 }

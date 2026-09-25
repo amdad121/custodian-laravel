@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AmdadulHaq\Custodian\Concerns\ParsesMiddlewareParameters;
 use AmdadulHaq\Custodian\Exceptions\PermissionDeniedException;
 use AmdadulHaq\Custodian\Middleware\PermissionMiddleware;
 use AmdadulHaq\Custodian\Middleware\RoleMiddleware;
@@ -122,4 +123,18 @@ it('returns 401 when unauthenticated user hits RoleOrPermissionMiddleware', func
     $response = $this->get('/test-rop-guest');
 
     expect($response->status())->toBe(401);
+});
+
+it('ignores empty items in middleware parameters', function (): void {
+    $parser = new class
+    {
+        use ParsesMiddlewareParameters;
+
+        public function parse(array $params): array
+        {
+            return $this->parseParameters($params);
+        }
+    };
+
+    expect($parser->parse(['users.create,', ' , admin']))->toBe(['users.create', 'admin']);
 });

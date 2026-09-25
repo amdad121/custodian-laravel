@@ -60,10 +60,12 @@ trait Roleable
     {
         $roleIds = $this->getModelIds('role', $this->flattenArgs($roles));
 
-        $this->roles()->syncWithoutDetaching($roleIds);
+        $synced = $this->roles()->syncWithoutDetaching($roleIds);
         $this->flushCustodianState();
 
-        event(new RoleAssigned($this, $roleIds));
+        if ($synced['attached'] !== []) {
+            event(new RoleAssigned($this, $this->castIds($synced['attached'])));
+        }
 
         return $this;
     }
@@ -84,10 +86,12 @@ trait Roleable
 
         $this->flushCustodianState();
 
-        event(new RoleAssigned($this, $roleIds));
+        if ($synced['attached'] !== []) {
+            event(new RoleAssigned($this, $this->castIds($synced['attached'])));
+        }
 
         if ($detach && $synced['detached'] !== []) {
-            event(new RoleRevoked($this));
+            event(new RoleRevoked($this, null, $this->castIds($synced['detached'])));
         }
 
         return $synced;
@@ -114,7 +118,9 @@ trait Roleable
         $detached = $this->roles()->detach($role);
         $this->flushCustodianState();
 
-        event(new RoleRevoked($this, $role));
+        if ($detached > 0) {
+            event(new RoleRevoked($this, $role, [(int) $role->getKey()]));
+        }
 
         return $detached;
     }
@@ -124,10 +130,11 @@ trait Roleable
      */
     public function revokeRoles(): int
     {
+        $roleIds = $this->castIds($this->roles()->pluck($this->roles()->getQualifiedRelatedKeyName())->all());
         $detached = $this->roles()->detach();
         $this->flushCustodianState();
 
-        event(new RoleRevoked($this));
+        event(new RoleRevoked($this, null, $roleIds));
 
         return $detached;
     }
@@ -176,8 +183,12 @@ trait Roleable
      */
     public function hasAllRoles(Model|string|array|Collection ...$roles): bool
     {
-        if (count($roles) === 1 && is_array($roles[0]) && $roles[0] !== []) {
-            $roles = $roles[0];
+        if (count($roles) === 1 && (is_array($roles[0]) || $roles[0] instanceof Collection)) {
+            $roles = collect($roles[0])->all();
+        }
+
+        if ($roles === []) {
+            return false;
         }
 
         foreach ($roles as $role) {
@@ -322,22 +333,25 @@ trait Roleable
      */
     protected function matchesWildcardPermission(string $permission, Collection $allPermissions): bool
     {
-        $permissionParts = explode('.', $permission);
-
-        return $allPermissions->contains(function (string $perm) use ($permissionParts): bool {
+        return $allPermissions->contains(function (string $perm) use ($permission): bool {
             if (! str_ends_with($perm, '*')) {
                 return false;
             }
 
-            $wildcardParts = array_filter(explode('.', rtrim($perm, '*')));
+            $prefix = rtrim($perm, '*');
 
-            foreach ($wildcardParts as $index => $part) {
-                if (! isset($permissionParts[$index]) || $permissionParts[$index] !== $part) {
-                    return false;
-                }
+            // A bare `*` matches everything.
+            if ($prefix === '') {
+                return true;
             }
 
-            return true;
+            // `posts.*` matches `posts.edit` but not `posts` itself.
+            if (str_ends_with($prefix, '.')) {
+                return str_starts_with($permission, $prefix) && strlen($permission) > strlen($prefix);
+            }
+
+            // `posts*` matches `posts` and `posts.edit`, but not `postsX`.
+            return $permission === $prefix || str_starts_with($permission, $prefix.'.');
         });
     }
 

@@ -2,6 +2,19 @@
 
 All notable changes to `custodian-laravel` will be documented in this file.
 
+## Unreleased
+
+- **Breaking:** the `Gate::before` hook no longer grants checks that carry arguments (`$user->can('update', $post)`, `$this->authorize('posts.edit', $post)`). Those go to your policies/gates. Before, a role or permission named after a policy method (e.g. `update`) passed that policy for every model. Checks without arguments are unchanged. A user with the literal `*` permission still passes every check, with or without arguments.
+- **Breaking:** `RoleAssigned`/`PermissionGranted` from `assignRole()`/`givePermissionTo()`/`syncRoles()`/`syncPermissions()` now carry only the IDs actually attached, and are not dispatched when nothing was attached. `RoleRevoked`/`PermissionRevoked` gain a `roleIds`/`permissionIds` property listing the detached IDs, and are not dispatched by `revokeRole()`/`revokePermissionTo()` when nothing was detached.
+- Fixed: `hasAllRoles(collect([...]))` required only one of the roles; it now requires all. `hasAllRoles()` with no roles now returns `false`.
+- Fixed: wildcard permissions with a `0` segment (`api.0.*`) matched too broadly, and `posts.*` matched the bare ability `posts`.
+- Fixed: `custodian:upgrade` no longer rewrites files in `database/migrations/`, which broke fresh migrations for the migration that created (or renamed) `is_guarded`.
+- Fixed: roles/permissions with numeric names (e.g. `"2024"`) can now be resolved by name when no record has that ID. Strings like `"1e3"` are no longer treated as IDs.
+- Fixed: `custodian:create-role` refuses a user name or email that matches more than one user, instead of assigning the role to whichever came first.
+- Fixed: `Permission::byGroup()` treated `_` and `%` in the group name as SQL wildcards.
+- Fixed: Blade role directives no longer crash when the authenticated user is not `Roleable`.
+- Fixed: empty items in middleware parameters (`permission:a,`) are ignored.
+
 ## v2.1.2 - 2026-07-28
 
 - Fixed: `hasRole()`, `hasAllRoles()`, and `hasAnyRole()` now accept a `Role` model instance (previously only `string|array|Collection`, so passing a model threw a `TypeError` — `hasPermission()` already allowed this).

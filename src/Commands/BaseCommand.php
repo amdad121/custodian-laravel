@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 abstract class BaseCommand extends Command implements PromptsForMissingInput
 {
@@ -26,16 +27,27 @@ abstract class BaseCommand extends Command implements PromptsForMissingInput
      */
     protected function findByIdentifier(Model $model, string $identifier, array $searchColumns): ?Model
     {
-        if (is_numeric($identifier)) {
-            return $model::query()->whereKey((int) $identifier)->first();
+        if (ctype_digit($identifier)) {
+            $found = $model::query()->whereKey((int) $identifier)->first();
+
+            if ($found instanceof Model) {
+                return $found;
+            }
         }
 
-        return $model::query()
+        $matches = $model::query()
             ->where(function (Builder $query) use ($identifier, $searchColumns): void {
                 foreach ($searchColumns as $column) {
                     $query->orWhere($column, $identifier);
                 }
             })
-            ->first();
+            ->limit(2)
+            ->get();
+
+        if ($matches->count() > 1) {
+            throw new InvalidArgumentException(sprintf('More than one record matches [%s]. Use an ID instead.', $identifier));
+        }
+
+        return $matches->first();
     }
 }

@@ -146,10 +146,12 @@ class Role extends Model implements PermissionableContract
     {
         $permissionIds = $this->getModelIds('permission', $this->flattenArgs($permissions));
 
-        $this->permissions()->syncWithoutDetaching($permissionIds);
+        $synced = $this->permissions()->syncWithoutDetaching($permissionIds);
         $this->unsetRelation('permissions');
 
-        event(new PermissionGranted($this, $permissionIds));
+        if ($synced['attached'] !== []) {
+            event(new PermissionGranted($this, $this->castIds($synced['attached'])));
+        }
 
         return $this;
     }
@@ -166,10 +168,12 @@ class Role extends Model implements PermissionableContract
         $synced = $this->permissions()->sync($permissionIds);
         $this->unsetRelation('permissions');
 
-        event(new PermissionGranted($this, $permissionIds));
+        if ($synced['attached'] !== []) {
+            event(new PermissionGranted($this, $this->castIds($synced['attached'])));
+        }
 
         if ($synced['detached'] !== []) {
-            event(new PermissionRevoked($this));
+            event(new PermissionRevoked($this, null, $this->castIds($synced['detached'])));
         }
 
         return $synced;
@@ -185,7 +189,9 @@ class Role extends Model implements PermissionableContract
         $detached = $this->permissions()->detach($permission);
         $this->unsetRelation('permissions');
 
-        event(new PermissionRevoked($this, $permission));
+        if ($detached > 0) {
+            event(new PermissionRevoked($this, $permission, [(int) $permission->getKey()]));
+        }
 
         return $detached;
     }
@@ -195,10 +201,11 @@ class Role extends Model implements PermissionableContract
      */
     public function revokeAllPermissions(): int
     {
+        $permissionIds = $this->castIds($this->permissions()->pluck($this->permissions()->getQualifiedRelatedKeyName())->all());
         $detached = $this->permissions()->detach();
         $this->unsetRelation('permissions');
 
-        event(new PermissionRevoked($this));
+        event(new PermissionRevoked($this, null, $permissionIds));
 
         return $detached;
     }
